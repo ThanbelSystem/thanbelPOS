@@ -1,0 +1,5 @@
+-- Migration 0002: All columns already included in 0001_initial_schema.sql
+-- config_divisas.tasa_cambio already exists
+-- config_fiscal table already exists
+-- productos.exento_iva already exists
+-- This migration is a placeholder for future changes.

@@ -1,0 +1,2 @@
+-- Migration 0003: venta_pagos table already included in 0001_initial_schema.sql
+-- This migration is a placeholder for future changes.

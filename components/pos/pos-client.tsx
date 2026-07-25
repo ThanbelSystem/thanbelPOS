@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
@@ -50,16 +50,6 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
   const [showTicket, setShowTicket] = useState(false)
   const [lastSale, setLastSale] = useState<any>(null)
   const [cajaLoading, setCajaLoading] = useState(false)
-
-  useEffect(() => {
-    const checkCaja = async () => {
-      const res = await fetch('/api/caja')
-      const data = await res.json()
-      setCaja(data)
-      setOpenCajaModal(!data)
-    }
-    checkCaja()
-  }, [])
 
   const filteredProducts = productos.filter(p => {
     const matchSearch = p.nombre.toLowerCase().includes(search.toLowerCase()) ||
@@ -128,8 +118,8 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
       const data = await res.json()
       if (!res.ok) { toast.error(data.error); return }
       toast.success('Caja abierta exitosamente')
+      setCaja(data)
       setOpenCajaModal(false)
-      router.refresh()
     } catch { toast.error('Error al abrir caja') }
     finally { setCajaLoading(false) }
   }
@@ -144,8 +134,6 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
       setCaja(null)
       setCloseCajaModal(false)
       setOpenCajaModal(true)
-      router.refresh()
-      router.push('/')
     } catch { toast.error('Error al cerrar caja') }
     finally { setCajaLoading(false) }
   }

@@ -245,14 +245,14 @@ BEGIN
   FOR tbl IN SELECT tablename FROM pg_tables WHERE schemaname = 'public'
   LOOP
     EXECUTE format('
-      DROP POLICY IF EXISTS ''anon_select_%I'' ON %I;
-      CREATE POLICY ''anon_select_%I'' ON %I FOR SELECT USING (true);
-      DROP POLICY IF EXISTS ''anon_insert_%I'' ON %I;
-      CREATE POLICY ''anon_insert_%I'' ON %I FOR INSERT WITH CHECK (true);
-      DROP POLICY IF EXISTS ''anon_update_%I'' ON %I;
-      CREATE POLICY ''anon_update_%I'' ON %I FOR UPDATE USING (true);
-      DROP POLICY IF EXISTS ''anon_delete_%I'' ON %I;
-      CREATE POLICY ''anon_delete_%I'' ON %I FOR DELETE USING (true);
+      DROP POLICY IF EXISTS anon_select_%I ON %I;
+      CREATE POLICY anon_select_%I ON %I FOR SELECT USING (true);
+      DROP POLICY IF EXISTS anon_insert_%I ON %I;
+      CREATE POLICY anon_insert_%I ON %I FOR INSERT WITH CHECK (true);
+      DROP POLICY IF EXISTS anon_update_%I ON %I;
+      CREATE POLICY anon_update_%I ON %I FOR UPDATE USING (true);
+      DROP POLICY IF EXISTS anon_delete_%I ON %I;
+      CREATE POLICY anon_delete_%I ON %I FOR DELETE USING (true);
     ', tbl, tbl, tbl, tbl, tbl, tbl, tbl, tbl, tbl, tbl, tbl, tbl, tbl, tbl, tbl, tbl);
   END LOOP;
 END $$;

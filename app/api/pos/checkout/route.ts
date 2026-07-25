@@ -113,8 +113,8 @@ export async function POST(request: NextRequest) {
       for (const pago of body.pagos) {
         const { error: pagoError } = await supabase.from('venta_pagos').insert({
           venta_id: venta.id,
-          metodo_pago: pago.metodo_pago,
-          monto_usd: pago.monto_usd,
+          metodo_pago: pago.metodo,
+          monto_usd: Number(pago.monto) || 0,
           referencia: pago.referencia || null,
         })
         if (pagoError) {

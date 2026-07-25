@@ -29,9 +29,10 @@ interface PosClientProps {
   user: any
 }
 
-export default function PosClient({ caja, inventarios, productos, clientes, configFiscal, configDivisas, user }: PosClientProps) {
+export default function PosClient({ caja: initialCaja, inventarios, productos, clientes, configFiscal, configDivisas, user }: PosClientProps) {
   const router = useRouter()
-  const [openCajaModal, setOpenCajaModal] = useState(!caja)
+  const [caja, setCaja] = useState(initialCaja)
+  const [openCajaModal, setOpenCajaModal] = useState(!initialCaja)
   const [closeCajaModal, setCloseCajaModal] = useState(false)
   const [montoInicialUsd, setMontoInicialUsd] = useState('0')
   const [montoInicialVed, setMontoInicialVed] = useState('0')
@@ -49,6 +50,16 @@ export default function PosClient({ caja, inventarios, productos, clientes, conf
   const [showTicket, setShowTicket] = useState(false)
   const [lastSale, setLastSale] = useState<any>(null)
   const [cajaLoading, setCajaLoading] = useState(false)
+
+  useEffect(() => {
+    const checkCaja = async () => {
+      const res = await fetch('/api/caja')
+      const data = await res.json()
+      setCaja(data)
+      setOpenCajaModal(!data)
+    }
+    checkCaja()
+  }, [])
 
   const filteredProducts = productos.filter(p => {
     const matchSearch = p.nombre.toLowerCase().includes(search.toLowerCase()) ||
@@ -130,7 +141,10 @@ export default function PosClient({ caja, inventarios, productos, clientes, conf
       const data = await res.json()
       if (!res.ok) { toast.error(data.error); return }
       toast.success('Caja cerrada exitosamente')
+      setCaja(null)
       setCloseCajaModal(false)
+      setOpenCajaModal(true)
+      router.refresh()
       router.push('/')
     } catch { toast.error('Error al cerrar caja') }
     finally { setCajaLoading(false) }
@@ -264,6 +278,10 @@ export default function PosClient({ caja, inventarios, productos, clientes, conf
               <button onClick={openCaja} disabled={cajaLoading}
                 className="w-full bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-emerald-700 transition-colors disabled:opacity-50">
                 {cajaLoading ? 'Abriendo...' : 'Abrir caja'}
+              </button>
+              <button onClick={() => router.push('/')}
+                className="w-full bg-slate-100 text-slate-600 py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-200 transition-colors mt-2">
+                Volver al inicio
               </button>
             </div>
           </div>

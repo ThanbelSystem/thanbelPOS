@@ -6,3 +6,6 @@ node_modules
 *.tsbuildinfo
 next-env.d.ts
 .agents/mcp/opencode.json
+supabase/.temp/
+
+.vercel

@@ -40,6 +40,7 @@ export default async function PosPage() {
     .select('*')
     .single()
 
+  const { data: empresa } = await supabase.from('empresa').select('*').single()
   const configDivisas = await getConfigDivisas()
 
   return (
@@ -49,8 +50,9 @@ export default async function PosPage() {
         inventarios={inventarios || []}
         productos={productos || []}
         clientes={clientes || []}
-        configFiscal={configFiscal || { porcentaje_iva: 0, mostrar_iva: true, ancho_papel: '58mm', nombre_impresora: '' }}
+        configFiscal={configFiscal || { porcentaje_iva: 0, mostrar_iva: true, ancho_papel: '58mm', nombre_impresora: '', mensaje_agradecimiento: '¡Gracias por su compra!' }}
         configDivisas={configDivisas}
+        empresa={empresa || {}}
         user={session}
       />
     </AppShell>

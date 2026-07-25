@@ -26,10 +26,11 @@ interface PosClientProps {
   clientes: any[]
   configFiscal: any
   configDivisas: ConfigDivisas
+  empresa: any
   user: any
 }
 
-export default function PosClient({ caja: initialCaja, inventarios, productos, clientes, configFiscal, configDivisas, user }: PosClientProps) {
+export default function PosClient({ caja: initialCaja, inventarios, productos, clientes, configFiscal, configDivisas, empresa, user }: PosClientProps) {
   const router = useRouter()
   const [caja, setCaja] = useState(initialCaja)
   const [openCajaModal, setOpenCajaModal] = useState(!initialCaja)
@@ -205,6 +206,13 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
   const renderTicket = () => {
     if (!lastSale) return ''
     const line = '-'.repeat(configFiscal.ancho_papel === '80mm' ? 48 : 32)
+    const showIva = configFiscal.mostrar_iva && Number(configFiscal.porcentaje_iva) > 0
+    const mensaje = configFiscal.mensaje_agradecimiento || '¡Gracias por su compra!'
+    const fechaEmision = new Date().toLocaleString('es-VE')
+    const clienteNombre = selectedClient?.nombre || 'Consumidor Final'
+    const clienteRif = selectedClient?.identificacion_cedula_rif || ''
+    const tasaStr = `1 ${configDivisas.divisa_principal || 'USD'} = ${Number(configDivisas.tasa_cambio).toLocaleString('es-VE')} ${configDivisas.divisa_secundaria || 'VED'}`
+
     return `
       <html>
       <head><meta charset="utf-8"><style>
@@ -212,32 +220,55 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
         h2 { text-align: center; margin: 0; font-size: 14px; }
         p { text-align: center; margin: 2px 0; font-size: 11px; }
         table { width: 100%; border-collapse: collapse; }
-        th, td { text-align: left; font-size: 11px; }
+        th, td { text-align: left; font-size: 11px; padding: 1px 0; }
         .right { text-align: right; }
+        .center { text-align: center; }
         .total { font-weight: bold; font-size: 13px; }
         .line { text-align: center; }
+        .header { font-size: 11px; text-align: center; margin: 1px 0; }
+        .label { font-weight: bold; }
       </style></head>
       <body>
-        <h2>ThanBel POS</h2>
-        <p>${new Date().toLocaleString('es-VE')}</p>
+        <h2>${empresa?.nombre || 'ThanBel POS'}</h2>
+        ${empresa?.direccion ? `<p class="header">${empresa.direccion}</p>` : ''}
+        ${empresa?.rif_identificacion ? `<p class="header">RIF: ${empresa.rif_identificacion}</p>` : ''}
+        ${empresa?.telefono ? `<p class="header">Telf: ${empresa.telefono}</p>` : ''}
+        <div class="line">${line}</div>
+        <p class="header">${fechaEmision}</p>
+        <p class="header"># Factura: ${lastSale.venta_id || ''}</p>
+        <p class="header">Cliente: ${clienteNombre}${clienteRif ? ' / ' + clienteRif : ''}</p>
+        <div class="line">${line}</div>
+        <p class="center label">FACTURA</p>
         <div class="line">${line}</div>
         <table>
-          <tr><th>Item</th><th class="right">Precio</th></tr>
-          ${cart.map(item => `
+          <tr><th>Cant</th><th>Descripción</th><th class="right">Precio</th><th class="right">Total</th></tr>
+          ${cart.map(item => {
+            const totalItem = item.cantidad * item.precio_unitario_usd
+            return `
             <tr>
-              <td>${item.nombre} x${item.cantidad}</td>
-              <td class="right">${fmtPrincipal(item.cantidad * item.precio_unitario_usd, configDivisas)}</td>
-            </tr>
-          `).join('')}
+              <td>${item.cantidad}</td>
+              <td>${item.nombre}</td>
+              <td class="right">${fmtPrincipal(item.precio_unitario_usd, configDivisas)}</td>
+              <td class="right">${fmtPrincipal(totalItem, configDivisas)}</td>
+            </tr>`
+          }).join('')}
         </table>
         <div class="line">${line}</div>
+        ${showIva ? `
         <table>
-          <tr><td>Subtotal:</td><td class="right">${fmtPrincipal(totalUsd - ivaAmount, configDivisas)}</td></tr>
-          ${configFiscal.mostrar_iva ? `<tr><td>IVA (${configFiscal.porcentaje_iva}%):</td><td class="right">${fmtPrincipal(ivaAmount, configDivisas)}</td></tr>` : ''}
+          <tr><td>Subtotal (Base IVA):</td><td class="right">${fmtPrincipal(subtotalConIva, configDivisas)}</td></tr>
+          <tr><td>IVA (${configFiscal.porcentaje_iva}%):</td><td class="right">${fmtPrincipal(ivaAmount, configDivisas)}</td></tr>
+          <tr><td>Exento:</td><td class="right">${fmtPrincipal(subtotalSinIva, configDivisas)}</td></tr>
           <tr class="total"><td>TOTAL:</td><td class="right">${fmtMonto(totalUsd, configDivisas)}</td></tr>
         </table>
+        ` : `
+        <table>
+          <tr class="total"><td>TOTAL:</td><td class="right">${fmtMonto(totalUsd, configDivisas)}</td></tr>
+        </table>
+        `}
+        <p class="center">Tasa: ${tasaStr}</p>
         <div class="line">${line}</div>
-        <p>¡Gracias por su compra!</p>
+        <p class="center">${mensaje}</p>
         <script>window.print();window.close();</script>
       </body></html>
     `
@@ -444,19 +475,19 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
               {metodoPago === 'MIXTO' && (
                 <div className="space-y-2">
                   {mixedPayments.map((p, i) => (
-                    <div key={i} className="flex items-center gap-2">
+                    <div key={i} className="flex items-center gap-1 min-w-0">
                       <select value={p.metodo} onChange={e => updateMixedPayment(i, 'metodo', e.target.value)}
-                        className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none">
+                        className="shrink-0 rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none w-[100px]">
                         <option value="EFECTIVO">Efectivo</option>
                         <option value="PAGO_MOVIL">Pago Móvil</option>
                         <option value="PUNTO_DE_VENTA">Punto de Venta</option>
                         <option value="CREDITO">Crédito</option>
                       </select>
                       <input type="number" step="0.01" placeholder="Monto" value={p.monto} onChange={e => updateMixedPayment(i, 'monto', e.target.value)}
-                        className="flex-1 rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
+                        className="w-[80px] shrink-0 rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
                       <input type="text" placeholder="Ref" value={p.referencia} onChange={e => updateMixedPayment(i, 'referencia', e.target.value)}
-                        className="w-20 rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
-                      <button onClick={() => removeMixedPayment(i)} className="text-rose-500 hover:text-rose-700"><X className="w-4 h-4" /></button>
+                        className="min-w-0 flex-1 rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
+                      <button onClick={() => removeMixedPayment(i)} className="shrink-0 text-rose-500 hover:text-rose-700"><X className="w-4 h-4" /></button>
                     </div>
                   ))}
                   <button onClick={addMixedPayment} className="text-xs text-emerald-600 hover:text-emerald-700 font-medium">

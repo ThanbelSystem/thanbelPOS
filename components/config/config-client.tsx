@@ -69,6 +69,7 @@ export default function ConfigClient({ empresa: initialEmpresa, configFiscal: in
         nombre_impresora: fiscal.nombre_impresora,
         ancho_papel: fiscal.ancho_papel,
         mostrar_iva: fiscal.mostrar_iva,
+        mensaje_agradecimiento: fiscal.mensaje_agradecimiento,
         updated_at: new Date().toISOString(),
       }).eq('id', 1)
       if (error) { toast.error(error.message); return }
@@ -104,18 +105,33 @@ export default function ConfigClient({ empresa: initialEmpresa, configFiscal: in
 
   const ticketPreview = () => {
     const line = fiscal.ancho_papel === '80mm' ? '-'.repeat(42) : '-'.repeat(28)
+    const showIva = fiscal.mostrar_iva && Number(fiscal.porcentaje_iva) > 0
+    const mensaje = fiscal.mensaje_agradecimiento || '¡Gracias por su compra!'
     return (
       <div className={`bg-white border border-slate-200 rounded-xl p-4 font-mono text-xs ${fiscal.ancho_papel === '80mm' ? 'max-w-sm' : 'max-w-[220px]'}`}>
         <p className="text-center font-bold text-sm">{empresa.nombre || 'Mi Empresa'}</p>
-        <p className="text-center text-slate-400">{new Date().toLocaleString('es-VE')}</p>
+        {empresa.direccion && <p className="text-center text-[10px] text-slate-400">{empresa.direccion}</p>}
+        {empresa.rif_identificacion && <p className="text-center text-[10px] text-slate-400">RIF: {empresa.rif_identificacion}</p>}
+        {empresa.telefono && <p className="text-center text-[10px] text-slate-400">Telf: {empresa.telefono}</p>}
+        <p className="text-center text-slate-400">{line}</p>
+        <p className="text-center text-[10px] text-slate-400">{new Date().toLocaleString('es-VE')}</p>
+        <p className="text-center text-[10px] text-slate-400">Cliente: Consumidor Final</p>
+        <p className="text-center text-slate-400">{line}</p>
+        <p className="text-center font-bold text-[11px]">FACTURA</p>
         <p className="text-center text-slate-400">{line}</p>
         <p className="text-center">Producto x1    $10.00</p>
         <p className="text-center">Producto x2    $20.00</p>
         <p className="text-center text-slate-400">{line}</p>
-        {fiscal.mostrar_iva && <p className="text-center">IVA ({fiscal.porcentaje_iva}%)    $0.00</p>}
+        {showIva ? (
+          <>
+            <p className="text-center">Base IVA:      $20.00</p>
+            <p className="text-center">IVA ({fiscal.porcentaje_iva}%):  $0.00</p>
+            <p className="text-center">Exento:        $10.00</p>
+          </>
+        ) : null}
         <p className="text-center font-bold text-sm">TOTAL    $30.00</p>
         <p className="text-center text-slate-400">{line}</p>
-        <p className="text-center text-[10px]">¡Gracias por su compra!</p>
+        <p className="text-center text-[10px]">{mensaje}</p>
       </div>
     )
   }
@@ -270,6 +286,11 @@ export default function ConfigClient({ empresa: initialEmpresa, configFiscal: in
                 className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
               <span className="text-sm text-slate-700">Mostrar IVA en tickets</span>
             </label>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Mensaje de agradecimiento</label>
+              <input value={fiscal.mensaje_agradecimiento || ''} onChange={e => setFiscal(prev => ({ ...prev, mensaje_agradecimiento: e.target.value }))}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
+            </div>
             <button onClick={saveFiscal} disabled={loading}
               className="bg-emerald-600 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50">
               {loading ? 'Guardando...' : 'Guardar configuración'}

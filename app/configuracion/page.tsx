@@ -18,7 +18,7 @@ export default async function ConfiguracionPage() {
     <AppShell user={session}>
       <ConfigClient
         empresa={empresa}
-        configFiscal={configFiscal || { porcentaje_iva: 0, nombre_impresora: '', ancho_papel: '58mm', mostrar_iva: true }}
+        configFiscal={configFiscal || { porcentaje_iva: 0, nombre_impresora: '', ancho_papel: '58mm', mostrar_iva: true, mensaje_agradecimiento: '¡Gracias por su compra!' }}
         configDivisas={configDivisas}
         divisasHistorial={divisasHistorial || []}
         user={session}

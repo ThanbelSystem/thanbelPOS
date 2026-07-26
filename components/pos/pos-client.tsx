@@ -132,6 +132,23 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
     ).filter(item => item.cantidad > 0))
   }
 
+  const setQuantity = (producto_id: string, value: string) => {
+    const num = parseFloat(value)
+    if (value === '' || isNaN(num)) {
+      setCart(prev => prev.map(item =>
+        item.producto_id === producto_id
+          ? { ...item, cantidad: 0.01 }
+          : item
+      ))
+      return
+    }
+    setCart(prev => prev.map(item =>
+      item.producto_id === producto_id
+        ? { ...item, cantidad: Math.max(0.01, num) }
+        : item
+    ))
+  }
+
   const removeFromCart = (producto_id: string) => {
     setCart(prev => prev.filter(item => item.producto_id !== producto_id))
   }
@@ -532,7 +549,8 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
               </div>
               <div className="flex items-center gap-1">
                 <button onClick={() => updateQuantity(item.producto_id, -1)} className="w-6 h-6 flex items-center justify-center rounded hover:bg-slate-200"><Minus className="w-3 h-3" /></button>
-                <span className="w-8 text-center text-sm font-medium tabular-nums">{item.cantidad}</span>
+                <input type="number" step="0.01" min="0.01" value={item.cantidad} onChange={e => setQuantity(item.producto_id, e.target.value)}
+                  className="w-14 text-center text-sm font-medium tabular-nums bg-white border border-slate-200 rounded-lg px-1 py-0.5 focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
                 <button onClick={() => updateQuantity(item.producto_id, 1)} className="w-6 h-6 flex items-center justify-center rounded hover:bg-slate-200"><Plus className="w-3 h-3" /></button>
               </div>
               <div className="text-right">

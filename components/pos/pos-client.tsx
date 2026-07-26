@@ -443,15 +443,27 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
 
         <div className="flex-1 overflow-y-auto scrollbar-thin p-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-            {paginatedProducts.map((p: any) => (
+            {paginatedProducts.map((p: any) => {
+              const cartItem = cart.find(item => item.producto_id === p.id)
+              const enCarrito = !!cartItem
+              return (
               <button key={p.id} onClick={() => addToCart(p)}
-                className="bg-white rounded-xl border-2 border-emerald-100 p-3 text-left hover:border-emerald-400 hover:shadow-md transition-all active:scale-95">
+                className={`relative rounded-xl border-2 p-3 text-left transition-all active:scale-95 ${
+                  enCarrito
+                    ? 'bg-emerald-50 border-emerald-300 hover:border-emerald-400 shadow-sm'
+                    : 'bg-white border-emerald-100 hover:border-emerald-400 hover:shadow-md'
+                }`}>
                 <p className="text-sm font-medium text-slate-800 truncate">{p.nombre}</p>
                 <p className="text-xs text-slate-400 truncate">{p.inventarios?.nombre_inventario}</p>
                 <p className="text-sm font-semibold text-emerald-600 mt-2 tabular-nums">{fmtPrincipal(Number(p.precio_venta_usd), configDivisas)}</p>
                 <p className="text-xs text-slate-400 tabular-nums">Stock: {Number(p.stock_actual).toLocaleString('es-VE')}</p>
+                {enCarrito && (
+                  <span className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full bg-emerald-500 text-white text-xs font-bold flex items-center justify-center shadow-sm">
+                    {cartItem!.cantidad}
+                  </span>
+                )}
               </button>
-            ))}
+            )})}
           </div>
           <Pagination
             data={filteredProducts}

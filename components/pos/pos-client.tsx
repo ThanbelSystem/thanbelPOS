@@ -11,6 +11,10 @@ import { fmtMonto, fmtPrincipal, fmtSecundaria, ConfigDivisas, DEFAULT_DIVISAS }
 import { registrarAuditoriaCliente } from '@/lib/auditoria'
 import Pagination from '@/components/ui/pagination'
 
+function parseNum(value: string): number {
+  return parseFloat(value.replace(',', '.'))
+}
+
 interface CartItem {
   producto_id: string
   nombre: string
@@ -57,6 +61,7 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
   const [showAddProductModal, setShowAddProductModal] = useState(false)
   const [newProductName, setNewProductName] = useState('')
   const [newProductPrice, setNewProductPrice] = useState('')
+  const [editingQty, setEditingQty] = useState<Record<string, string>>({})
 
   const filteredProducts = productos.filter(p => {
     const matchSearch = p.nombre.toLowerCase().includes(search.toLowerCase()) ||
@@ -69,7 +74,7 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
 
   const addCustomProductToCart = () => {
     const name = newProductName.trim()
-    const price = Number(newProductPrice)
+    const price = parseNum(newProductPrice)
     if (!name) { toast.error('Ingrese un nombre para el producto'); return }
     if (!price || price <= 0) { toast.error('Ingrese un costo unitario válido'); return }
     setCart(prev => [...prev, {
@@ -133,13 +138,20 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
   }
 
   const setQuantity = (producto_id: string, value: string) => {
-    const num = parseFloat(value)
-    if (value === '' || isNaN(num)) {
-      setCart(prev => prev.map(item =>
-        item.producto_id === producto_id
-          ? { ...item, cantidad: 0.01 }
-          : item
-      ))
+    setEditingQty(prev => ({ ...prev, [producto_id]: value }))
+  }
+
+  const commitQuantity = (producto_id: string) => {
+    const raw = editingQty[producto_id]
+    if (raw === undefined) return
+    const trimmed = raw.trim()
+    if (trimmed === '') {
+      setEditingQty(prev => { const { [producto_id]: _, ...rest } = prev; return rest })
+      return
+    }
+    const num = parseNum(trimmed)
+    if (isNaN(num) || num <= 0) {
+      setEditingQty(prev => { const { [producto_id]: _, ...rest } = prev; return rest })
       return
     }
     setCart(prev => prev.map(item =>
@@ -147,6 +159,7 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
         ? { ...item, cantidad: Math.max(0.01, num) }
         : item
     ))
+    setEditingQty(prev => { const { [producto_id]: _, ...rest } = prev; return rest })
   }
 
   const removeFromCart = (producto_id: string) => {
@@ -169,8 +182,8 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          monto_inicial_usd: Number(montoInicialUsd) || 0,
-          monto_inicial_ved: Number(montoInicialVed) || 0,
+          monto_inicial_usd: parseNum(montoInicialUsd) || 0,
+          monto_inicial_ved: parseNum(montoInicialVed) || 0,
         }),
       })
       const data = await res.json()
@@ -343,12 +356,12 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Monto inicial (USD)</label>
-                <input type="number" step="0.01" value={montoInicialUsd} onChange={e => setMontoInicialUsd(e.target.value)}
+                <input type="text" inputMode="decimal" value={montoInicialUsd} onChange={e => setMontoInicialUsd(e.target.value)}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Monto inicial (VED)</label>
-                <input type="number" step="0.01" value={montoInicialVed} onChange={e => setMontoInicialVed(e.target.value)}
+                <input type="text" inputMode="decimal" value={montoInicialVed} onChange={e => setMontoInicialVed(e.target.value)}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
               </div>
               <button onClick={openCaja} disabled={cajaLoading}
@@ -396,7 +409,7 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Costo unitario (USD)</label>
-                <input type="number" step="0.01" min="0.01" value={newProductPrice} onChange={e => setNewProductPrice(e.target.value)}
+                <input type="text" inputMode="decimal" value={newProductPrice} onChange={e => setNewProductPrice(e.target.value)}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none"
                   placeholder="0.00" />
               </div>
@@ -549,7 +562,10 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
               </div>
               <div className="flex items-center gap-1">
                 <button onClick={() => updateQuantity(item.producto_id, -1)} className="w-6 h-6 flex items-center justify-center rounded hover:bg-slate-200"><Minus className="w-3 h-3" /></button>
-                <input type="number" step="0.01" min="0.01" value={item.cantidad} onChange={e => setQuantity(item.producto_id, e.target.value)}
+                <input type="text" inputMode="decimal"
+                  value={editingQty[item.producto_id] ?? item.cantidad}
+                  onChange={e => setQuantity(item.producto_id, e.target.value)}
+                  onBlur={() => commitQuantity(item.producto_id)}
                   className="w-14 text-center text-sm font-medium tabular-nums bg-white border border-slate-200 rounded-lg px-1 py-0.5 focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
                 <button onClick={() => updateQuantity(item.producto_id, 1)} className="w-6 h-6 flex items-center justify-center rounded hover:bg-slate-200"><Plus className="w-3 h-3" /></button>
               </div>
@@ -612,7 +628,7 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
                         <option value="PUNTO_DE_VENTA">Punto de Venta</option>
                         <option value="CREDITO">Crédito</option>
                       </select>
-                      <input type="number" step="0.01" placeholder="Monto" value={p.monto} onChange={e => updateMixedPayment(i, 'monto', e.target.value)}
+                      <input type="text" inputMode="decimal" placeholder="Monto" value={p.monto} onChange={e => updateMixedPayment(i, 'monto', e.target.value)}
                         className="w-[80px] shrink-0 rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
                       <input type="text" placeholder="Ref" value={p.referencia} onChange={e => updateMixedPayment(i, 'referencia', e.target.value)}
                         className="min-w-0 flex-1 rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />

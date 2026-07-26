@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { fmtMonto, fmtPrincipal, ConfigDivisas, DEFAULT_DIVISAS } from '@/lib/divisas'
+import { parseNum } from '@/lib/utils'
 import { registrarAuditoriaCliente } from '@/lib/auditoria'
 import Pagination from '@/components/ui/pagination'
 import ConfirmDialog from '@/components/ui/confirm-dialog'
@@ -120,10 +121,10 @@ export default function InventariosClient({ inventarios: initialInv, productos: 
         codigo_barras: prodForm.codigo_barras || null,
         unidad_medida: prodForm.unidad_medida,
         inventario_id: prodForm.inventario_id,
-        stock_actual: Number(prodForm.stock_actual) || 0,
-        stock_minimo: Number(prodForm.stock_minimo) || 0,
-        costo_compra_usd: Number(prodForm.costo_compra_usd) || 0,
-        precio_venta_usd: Number(prodForm.precio_venta_usd) || 0,
+        stock_actual: parseNum(prodForm.stock_actual) || 0,
+        stock_minimo: parseNum(prodForm.stock_minimo) || 0,
+        costo_compra_usd: parseNum(prodForm.costo_compra_usd) || 0,
+        precio_venta_usd: parseNum(prodForm.precio_venta_usd) || 0,
         exento_iva: prodForm.exento_iva,
         estado: prodForm.estado,
       }
@@ -205,15 +206,15 @@ export default function InventariosClient({ inventarios: initialInv, productos: 
       for (const item of devItems) {
         const { data: prod } = await supabase.from('productos').select('stock_actual').eq('id', item.producto_id).single()
         if (prod) {
-          const newStock = Number(prod.stock_actual) + Number(item.cantidad)
+          const newStock = Number(prod.stock_actual) + parseNum(item.cantidad)
           await supabase.from('productos').update({ stock_actual: newStock }).eq('id', item.producto_id)
         }
       }
-      const detalles = devItems.map(i => ({ producto_id: i.producto_id, cantidad: Number(i.cantidad) }))
+      const detalles = devItems.map(i => ({ producto_id: i.producto_id, cantidad: parseNum(i.cantidad) }))
       await registrarAuditoriaCliente(user.id, 'DEVOLUCION_INVENTARIO', 'Inventarios', { items: detalles })
       setProductos(prev => prev.map(p => {
         const devItem = devItems.find(i => i.producto_id === p.id)
-        if (devItem) return { ...p, stock_actual: Number(p.stock_actual) + Number(devItem.cantidad) }
+        if (devItem) return { ...p, stock_actual: Number(p.stock_actual) + parseNum(devItem.cantidad) }
         return p
       }))
       toast.success('Devolución procesada')
@@ -432,29 +433,29 @@ export default function InventariosClient({ inventarios: initialInv, productos: 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Stock actual</label>
-                  <input type="number" step="0.01" value={prodForm.stock_actual} onChange={e => setProdForm(prev => ({ ...prev, stock_actual: e.target.value }))}
+                  <input type="text" inputMode="decimal" value={prodForm.stock_actual} onChange={e => setProdForm(prev => ({ ...prev, stock_actual: e.target.value }))}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Stock mínimo</label>
-                  <input type="number" step="0.01" value={prodForm.stock_minimo} onChange={e => setProdForm(prev => ({ ...prev, stock_minimo: e.target.value }))}
+                  <input type="text" inputMode="decimal" value={prodForm.stock_minimo} onChange={e => setProdForm(prev => ({ ...prev, stock_minimo: e.target.value }))}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Costo (USD)</label>
-                  <input type="number" step="0.01" value={prodForm.costo_compra_usd} onChange={e => setProdForm(prev => ({ ...prev, costo_compra_usd: e.target.value }))}
+                  <input type="text" inputMode="decimal" value={prodForm.costo_compra_usd} onChange={e => setProdForm(prev => ({ ...prev, costo_compra_usd: e.target.value }))}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Precio venta (USD)</label>
-                  <input type="number" step="0.01" value={prodForm.precio_venta_usd} onChange={e => setProdForm(prev => ({ ...prev, precio_venta_usd: e.target.value }))}
+                  <input type="text" inputMode="decimal" value={prodForm.precio_venta_usd} onChange={e => setProdForm(prev => ({ ...prev, precio_venta_usd: e.target.value }))}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
                 </div>
               </div>
               <div className="text-xs text-slate-500 tabular-nums">
-                Precio en {config.divisa_secundaria}: {fmtPrincipal(Number(prodForm.precio_venta_usd) * config.tasa_cambio, {...config, mostrar_como: 'PRINCIPAL'})}
+                Precio en {config.divisa_secundaria}: {fmtPrincipal(parseNum(prodForm.precio_venta_usd) * config.tasa_cambio, {...config, mostrar_como: 'PRINCIPAL'})}
               </div>
               <div className="flex items-center gap-4">
                 <label className="flex items-center gap-2">
@@ -517,7 +518,7 @@ export default function InventariosClient({ inventarios: initialInv, productos: 
                 {devItems.map(item => (
                   <div key={item.producto_id} className="flex items-center gap-2 mb-2">
                     <span className="flex-1 text-sm truncate">{item.nombre}</span>
-                    <input type="number" step="0.01" value={item.cantidad} onChange={e => setDevItems(prev => prev.map(i => i.producto_id === item.producto_id ? { ...i, cantidad: e.target.value } : i))}
+                    <input type="text" inputMode="decimal" value={item.cantidad} onChange={e => setDevItems(prev => prev.map(i => i.producto_id === item.producto_id ? { ...i, cantidad: e.target.value } : i))}
                       className="w-20 rounded border border-slate-200 px-2 py-1 text-sm text-right focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
                     <button onClick={() => removeDevItem(item.producto_id)} className="text-rose-500"><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
                   </div>

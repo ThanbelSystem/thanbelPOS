@@ -9,11 +9,8 @@ import {
 } from 'lucide-react'
 import { fmtMonto, fmtPrincipal, fmtSecundaria, ConfigDivisas, DEFAULT_DIVISAS } from '@/lib/divisas'
 import { registrarAuditoriaCliente } from '@/lib/auditoria'
+import { parseNum } from '@/lib/utils'
 import Pagination from '@/components/ui/pagination'
-
-function parseNum(value: string): number {
-  return parseFloat(value.replace(',', '.'))
-}
 
 interface CartItem {
   producto_id: string

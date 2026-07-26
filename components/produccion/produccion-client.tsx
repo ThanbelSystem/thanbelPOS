@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { Search, Plus, Trash2, Calculator, History, Factory, DollarSign } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { fmtMonto, fmtPrincipal, ConfigDivisas, DEFAULT_DIVISAS } from '@/lib/divisas'
+import { parseNum } from '@/lib/utils'
 import { registrarAuditoriaCliente } from '@/lib/auditoria'
 import Pagination from '@/components/ui/pagination'
 
@@ -57,22 +58,22 @@ export default function ProduccionClient({ inventarios, productos: initialProduc
   }
 
   const costoTotalMateriales = useMemo(() =>
-    ingredientes.reduce((sum, i) => sum + (Number(i.cantidad) || 0) * i.costo_unitario, 0),
+    ingredientes.reduce((sum, i) => sum + (parseNum(i.cantidad) || 0) * i.costo_unitario, 0),
     [ingredientes]
   )
 
-  const profitDecimal = Number(profitPct) / 100 || 0
+  const profitDecimal = parseNum(profitPct) / 100 || 0
   const costoConProfit = costoTotalMateriales * (1 + profitDecimal)
   const montoProfit = costoConProfit - costoTotalMateriales
-  const costoUnitario = unidadesProducidas && Number(unidadesProducidas) > 0
-    ? costoConProfit / Number(unidadesProducidas)
+  const costoUnitario = unidadesProducidas && parseNum(unidadesProducidas) > 0
+    ? costoConProfit / parseNum(unidadesProducidas)
     : 0
 
   const procesar = async () => {
     if (!nombreProducto) { toast.error('Nombre del producto requerido'); return }
     if (!inventarioDestino) { toast.error('Inventario destino requerido'); return }
     if (ingredientes.length === 0) { toast.error('Agregue al menos un ingrediente'); return }
-    if (!unidadesProducidas || Number(unidadesProducidas) <= 0) { toast.error('Unidades a producir debe ser mayor a 0'); return }
+    if (!unidadesProducidas || parseNum(unidadesProducidas) <= 0) { toast.error('Unidades a producir debe ser mayor a 0'); return }
 
     setLoading(true)
     try {
@@ -81,7 +82,7 @@ export default function ProduccionClient({ inventarios, productos: initialProduc
         inventario_id: inventarioDestino,
         nombre: nombreProducto,
         unidad_medida: 'UND',
-        stock_actual: Number(unidadesProducidas),
+        stock_actual: parseNum(unidadesProducidas),
         stock_minimo: 0,
         costo_compra_usd: costoUnitario,
         precio_venta_usd: costoUnitario,
@@ -94,9 +95,9 @@ export default function ProduccionClient({ inventarios, productos: initialProduc
       // Create receta
       const { data: receta, error: recError } = await supabase.from('recetas_produccion').insert({
         producto_resultante_id: nuevoProducto.id,
-        porcentaje_profit_esperado: Number(profitPct),
+        porcentaje_profit_esperado: parseNum(profitPct),
         costo_total_ingredientes_usd: costoTotalMateriales,
-        cantidad_unidades_producidas: Number(unidadesProducidas),
+        cantidad_unidades_producidas: parseNum(unidadesProducidas),
         costo_unitario_final_usd: costoUnitario,
       }).select().single()
 
@@ -107,11 +108,11 @@ export default function ProduccionClient({ inventarios, productos: initialProduc
 
       // Create ingredientes
       for (const ing of ingredientes) {
-        const costoParcial = (Number(ing.cantidad) || 0) * ing.costo_unitario
+        const costoParcial = (parseNum(ing.cantidad) || 0) * ing.costo_unitario
         const { error: ingError } = await supabase.from('receta_ingredientes').insert({
           receta_id: receta.id,
           producto_materia_prima_id: ing.producto_id,
-          cantidad_usada: Number(ing.cantidad),
+          cantidad_usada: parseNum(ing.cantidad),
           costo_parcial_usd: costoParcial,
         })
         if (ingError) {
@@ -123,7 +124,7 @@ export default function ProduccionClient({ inventarios, productos: initialProduc
         // Decrease stock of materia prima
         const { data: mp } = await supabase.from('productos').select('stock_actual').eq('id', ing.producto_id).single()
         if (mp) {
-          const newStock = Number(mp.stock_actual) - (Number(ing.cantidad) || 0)
+          const newStock = Number(mp.stock_actual) - (parseNum(ing.cantidad) || 0)
           await supabase.from('productos').update({ stock_actual: newStock }).eq('id', ing.producto_id)
         }
       }
@@ -133,7 +134,7 @@ export default function ProduccionClient({ inventarios, productos: initialProduc
         costo_total: costoTotalMateriales,
         costo_unitario: costoUnitario,
         profit: profitPct,
-        unidades: Number(unidadesProducidas),
+        unidades: parseNum(unidadesProducidas),
       })
 
       toast.success('Producción procesada exitosamente')
@@ -209,14 +210,14 @@ export default function ProduccionClient({ inventarios, productos: initialProduc
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">% Profit</label>
                   <div className="relative">
-                    <input type="number" value={profitPct} onChange={e => setProfitPct(e.target.value)}
+                    <input type="text" inputMode="decimal" value={profitPct} onChange={e => setProfitPct(e.target.value)}
                       className="w-full rounded-lg border border-slate-200 px-3 py-2 pr-8 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">%</span>
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Unidades a producir</label>
-                  <input type="number" value={unidadesProducidas} onChange={e => setUnidadesProducidas(e.target.value)}
+                  <input type="text" inputMode="decimal" value={unidadesProducidas} onChange={e => setUnidadesProducidas(e.target.value)}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
                 </div>
               </div>
@@ -228,9 +229,9 @@ export default function ProduccionClient({ inventarios, productos: initialProduc
                   {ingredientes.map(ing => (
                     <div key={ing.producto_id} className="flex items-center gap-2">
                       <span className="flex-1 text-sm truncate">{ing.nombre}</span>
-                      <input type="number" step="0.01" value={ing.cantidad} onChange={e => updateIngCantidad(ing.producto_id, e.target.value)}
+                      <input type="text" inputMode="decimal" value={ing.cantidad} onChange={e => updateIngCantidad(ing.producto_id, e.target.value)}
                         className="w-20 rounded border border-slate-200 px-2 py-1 text-sm text-right" />
-                      <span className="text-xs text-slate-400 w-16 text-right tabular-nums">{fmtMonto((Number(ing.cantidad) || 0) * ing.costo_unitario, config)}</span>
+                      <span className="text-xs text-slate-400 w-16 text-right tabular-nums">{fmtMonto((parseNum(ing.cantidad) || 0) * ing.costo_unitario, config)}</span>
                       <button onClick={() => removeIngrediente(ing.producto_id)} className="text-rose-500"><Trash2 className="w-3 h-3" /></button>
                     </div>
                   ))}

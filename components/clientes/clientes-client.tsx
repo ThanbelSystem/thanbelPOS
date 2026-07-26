@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { Search, Plus, Pencil, Trash2, MapPin, MessageCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { fmtMonto, ConfigDivisas, DEFAULT_DIVISAS } from '@/lib/divisas'
+import { parseNum } from '@/lib/utils'
 import { registrarAuditoriaCliente } from '@/lib/auditoria'
 import Pagination from '@/components/ui/pagination'
 import ConfirmDialog from '@/components/ui/confirm-dialog'
@@ -92,10 +93,10 @@ export default function ClientesClient({ clientes: initialClientes, config, user
         nombre: form.nombre,
         identificacion_cedula_rif: form.identificacion_cedula_rif || null,
         telefono: form.telefono || null,
-        limite_credito_usd: Number(form.limite_credito_usd) || 0,
+        limite_credito_usd: parseNum(form.limite_credito_usd) || 0,
         fecha_vencimiento_credito: form.fecha_vencimiento_credito || null,
-        latitud_gps: form.latitud_gps ? Number(form.latitud_gps) : null,
-        longitud_gps: form.longitud_gps ? Number(form.longitud_gps) : null,
+        latitud_gps: form.latitud_gps ? parseNum(form.latitud_gps) : null,
+        longitud_gps: form.longitud_gps ? parseNum(form.longitud_gps) : null,
       }
 
       if (editing) {
@@ -146,7 +147,7 @@ export default function ClientesClient({ clientes: initialClientes, config, user
     if (!transactionsModal || !abonoMonto) { toast.error('Ingrese un monto'); return }
     setLoading(true)
     try {
-      const monto = Number(abonoMonto)
+      const monto = parseNum(abonoMonto)
       const { error } = await supabase.from('transacciones').insert({
         tipo: 'ABONO_CLIENTE',
         monto_usd: monto,
@@ -172,7 +173,7 @@ export default function ClientesClient({ clientes: initialClientes, config, user
     if (!transactionsModal || !cobroMonto) { toast.error('Ingrese un monto'); return }
     setLoading(true)
     try {
-      const monto = Number(cobroMonto)
+      const monto = parseNum(cobroMonto)
       const { error } = await supabase.from('transacciones').insert({
         tipo: 'COBRO_DEUDA',
         monto_usd: monto,
@@ -302,7 +303,7 @@ export default function ClientesClient({ clientes: initialClientes, config, user
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Límite crédito (USD)</label>
-                  <input type="number" step="0.01" value={form.limite_credito_usd} onChange={e => setForm(prev => ({ ...prev, limite_credito_usd: e.target.value }))}
+                  <input type="text" inputMode="decimal" value={form.limite_credito_usd} onChange={e => setForm(prev => ({ ...prev, limite_credito_usd: e.target.value }))}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
                 </div>
                 <div>
@@ -314,9 +315,9 @@ export default function ClientesClient({ clientes: initialClientes, config, user
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Coordenadas GPS</label>
                 <div className="flex gap-2">
-                  <input placeholder="Latitud" value={form.latitud_gps} onChange={e => setForm(prev => ({ ...prev, latitud_gps: e.target.value }))}
+                  <input type="text" inputMode="decimal" placeholder="Latitud" value={form.latitud_gps} onChange={e => setForm(prev => ({ ...prev, latitud_gps: e.target.value }))}
                     className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
-                  <input placeholder="Longitud" value={form.longitud_gps} onChange={e => setForm(prev => ({ ...prev, longitud_gps: e.target.value }))}
+                  <input type="text" inputMode="decimal" placeholder="Longitud" value={form.longitud_gps} onChange={e => setForm(prev => ({ ...prev, longitud_gps: e.target.value }))}
                     className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
                   <button onClick={captureGps} className="px-3 py-2 bg-slate-100 rounded-lg hover:bg-slate-200 text-sm">
                     <MapPin className="w-4 h-4" />
@@ -346,7 +347,7 @@ export default function ClientesClient({ clientes: initialClientes, config, user
             <p className="text-sm text-slate-500 mb-4">Deuda actual: {fmtMonto(Number(transactionsModal.deuda_actual_usd), config)}</p>
             <div className="flex gap-3 mb-4">
               <div className="flex-1">
-                <input type="number" step="0.01" placeholder="Monto abono" value={abonoMonto} onChange={e => setAbonoMonto(e.target.value)}
+                <input type="text" inputMode="decimal" placeholder="Monto abono" value={abonoMonto} onChange={e => setAbonoMonto(e.target.value)}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
                 <button onClick={registrarAbono} disabled={loading}
                   className="mt-1 w-full bg-emerald-600 text-white py-1.5 rounded-lg text-xs font-semibold hover:bg-emerald-700 disabled:opacity-50">
@@ -354,7 +355,7 @@ export default function ClientesClient({ clientes: initialClientes, config, user
                 </button>
               </div>
               <div className="flex-1">
-                <input type="number" step="0.01" placeholder="Monto cobro" value={cobroMonto} onChange={e => setCobroMonto(e.target.value)}
+                <input type="text" inputMode="decimal" placeholder="Monto cobro" value={cobroMonto} onChange={e => setCobroMonto(e.target.value)}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
                 <button onClick={registrarCobro} disabled={loading}
                   className="mt-1 w-full bg-amber-500 text-white py-1.5 rounded-lg text-xs font-semibold hover:bg-amber-600 disabled:opacity-50">

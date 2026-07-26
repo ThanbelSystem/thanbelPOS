@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { Building2, DollarSign, Receipt, Wrench, Printer } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { ConfigDivisas } from '@/lib/divisas'
+import { parseNum } from '@/lib/utils'
 import { registrarAuditoriaCliente } from '@/lib/auditoria'
 import ConfirmDialog from '@/components/ui/confirm-dialog'
 
@@ -65,7 +66,7 @@ export default function ConfigClient({ empresa: initialEmpresa, configFiscal: in
     setLoading(true)
     try {
       const { error } = await supabase.from('config_fiscal').update({
-        porcentaje_iva: Number(fiscal.porcentaje_iva) || 0,
+        porcentaje_iva: parseNum(fiscal.porcentaje_iva) || 0,
         nombre_impresora: fiscal.nombre_impresora,
         ancho_papel: fiscal.ancho_papel,
         mostrar_iva: fiscal.mostrar_iva,
@@ -223,7 +224,7 @@ export default function ConfigClient({ empresa: initialEmpresa, configFiscal: in
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Tasa de cambio</label>
-              <input type="number" step="0.01" value={divisas.tasa_cambio} onChange={e => setDivisas(prev => ({ ...prev, tasa_cambio: Number(e.target.value) }))}
+              <input type="text" inputMode="decimal" value={divisas.tasa_cambio} onChange={e => setDivisas(prev => ({ ...prev, tasa_cambio: parseNum(e.target.value) }))}
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
             </div>
             <div>
@@ -260,7 +261,7 @@ export default function ConfigClient({ empresa: initialEmpresa, configFiscal: in
             <h3 className="text-sm font-semibold text-slate-700">Configuración fiscal</h3>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Porcentaje de IVA (%)</label>
-              <input type="number" step="0.01" value={fiscal.porcentaje_iva} onChange={e => setFiscal(prev => ({ ...prev, porcentaje_iva: e.target.value }))}
+              <input type="text" inputMode="decimal" value={fiscal.porcentaje_iva} onChange={e => setFiscal(prev => ({ ...prev, porcentaje_iva: e.target.value }))}
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
             </div>
             <div>

@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
   ShoppingCart, Plus, Minus, Trash2, Search, X, CreditCard, Wallet, Banknote, Smartphone,
-  Printer, Check, User as UserIcon,
+  Printer, Check, User as UserIcon, Eraser, Package,
 } from 'lucide-react'
 import { fmtMonto, fmtPrincipal, fmtSecundaria, ConfigDivisas, DEFAULT_DIVISAS } from '@/lib/divisas'
 import { registrarAuditoriaCliente } from '@/lib/auditoria'
+import Pagination from '@/components/ui/pagination'
 
 interface CartItem {
   producto_id: string
@@ -51,6 +52,11 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
   const [showTicket, setShowTicket] = useState(false)
   const [lastSale, setLastSale] = useState<any>(null)
   const [cajaLoading, setCajaLoading] = useState(false)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(50)
+  const [showAddProductModal, setShowAddProductModal] = useState(false)
+  const [newProductName, setNewProductName] = useState('')
+  const [newProductPrice, setNewProductPrice] = useState('')
 
   const filteredProducts = productos.filter(p => {
     const matchSearch = p.nombre.toLowerCase().includes(search.toLowerCase()) ||
@@ -58,6 +64,40 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
     const matchInv = selectedInv === 'all' || p.inventario_id === selectedInv
     return matchSearch && matchInv
   })
+
+  const paginatedProducts = filteredProducts.slice((page - 1) * pageSize, page * pageSize)
+
+  const addCustomProductToCart = () => {
+    const name = newProductName.trim()
+    const price = Number(newProductPrice)
+    if (!name) { toast.error('Ingrese un nombre para el producto'); return }
+    if (!price || price <= 0) { toast.error('Ingrese un costo unitario válido'); return }
+    setCart(prev => [...prev, {
+      producto_id: `custom_${Date.now()}`,
+      nombre: name,
+      cantidad: 1,
+      precio_unitario_usd: price,
+      exento_iva: false,
+      inventario_nombre: 'Personalizado',
+    }])
+    setNewProductName('')
+    setNewProductPrice('')
+    setShowAddProductModal(false)
+    toast.success('Producto agregado al carrito')
+  }
+
+  const resetSale = () => {
+    setCart([])
+    setSearch('')
+    setSelectedInv('all')
+    setSelectedClient(null)
+    setClientSearch('')
+    setMetodoPago('EFECTIVO')
+    setReferenciaPago('')
+    setMixedPayments([])
+    setPage(1)
+    toast.success('Venta restablecida')
+  }
 
   const filteredClientes = clientes.filter(c =>
     c.nombre.toLowerCase().includes(clientSearch.toLowerCase())
@@ -323,22 +363,65 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
         </div>
       )}
 
+      {/* Add Product Modal */}
+      {showAddProductModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowAddProductModal(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-in-fade">
+            <h3 className="text-lg font-semibold text-slate-800 mb-1">Agregar producto</h3>
+            <p className="text-sm text-slate-500 mb-4">Ingrese el nombre y costo unitario del producto</p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Nombre del producto</label>
+                <input type="text" value={newProductName} onChange={e => setNewProductName(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none"
+                  placeholder="Ej: Producto personalizado" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Costo unitario (USD)</label>
+                <input type="number" step="0.01" min="0.01" value={newProductPrice} onChange={e => setNewProductPrice(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none"
+                  placeholder="0.00" />
+              </div>
+              <div className="flex gap-3">
+                <button onClick={addCustomProductToCart}
+                  className="flex-1 bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-emerald-700 transition-colors">
+                  Agregar al carrito
+                </button>
+                <button onClick={() => setShowAddProductModal(false)}
+                  className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Product Grid */}
       <div className="flex-1 flex flex-col bg-white rounded-2xl border border-slate-100 shadow-sm">
         <div className="p-4 border-b border-slate-100 space-y-3">
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input type="text" placeholder="Buscar producto..." value={search} onChange={e => setSearch(e.target.value)}
+              <input type="text" placeholder="Buscar producto..." value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
                 className="w-full rounded-lg border border-slate-200 pl-9 pr-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
             </div>
-            <select value={selectedInv} onChange={e => setSelectedInv(e.target.value)}
+            <select value={selectedInv} onChange={e => { setSelectedInv(e.target.value); setPage(1) }}
               className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none">
               <option value="all">Todos</option>
               {inventarios.map((inv: any) => (
                 <option key={inv.id} value={inv.id}>{inv.nombre_inventario}</option>
               ))}
             </select>
+            <button onClick={() => setShowAddProductModal(true)}
+              className="w-9 h-9 flex items-center justify-center rounded-lg border border-emerald-200 text-emerald-600 hover:bg-emerald-50 transition-colors">
+              <Plus className="w-4 h-4" />
+            </button>
+            <button onClick={resetSale}
+              className="flex items-center gap-1.5 rounded-lg border border-rose-200 text-rose-600 px-3 py-2 text-sm font-medium hover:bg-rose-50 transition-colors">
+              <Eraser className="w-4 h-4" /> Limpiar
+            </button>
           </div>
           <div className="flex items-center gap-2">
             {caja ? (
@@ -360,9 +443,9 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
 
         <div className="flex-1 overflow-y-auto scrollbar-thin p-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-            {filteredProducts.map((p: any) => (
+            {paginatedProducts.map((p: any) => (
               <button key={p.id} onClick={() => addToCart(p)}
-                className="bg-white rounded-xl border border-slate-100 p-3 text-left hover:border-emerald-200 hover:shadow-sm transition-all active:scale-95">
+                className="bg-white rounded-xl border-2 border-emerald-100 p-3 text-left hover:border-emerald-400 hover:shadow-md transition-all active:scale-95">
                 <p className="text-sm font-medium text-slate-800 truncate">{p.nombre}</p>
                 <p className="text-xs text-slate-400 truncate">{p.inventarios?.nombre_inventario}</p>
                 <p className="text-sm font-semibold text-emerald-600 mt-2 tabular-nums">{fmtPrincipal(Number(p.precio_venta_usd), configDivisas)}</p>
@@ -370,6 +453,13 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
               </button>
             ))}
           </div>
+          <Pagination
+            data={filteredProducts}
+            page={page}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => { setPageSize(size); setPage(1) }}
+          />
         </div>
       </div>
 
@@ -385,9 +475,18 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
           {/* Client Select */}
           <div className="relative">
             <button onClick={() => setShowClientSelect(!showClientSelect)}
-              className="w-full flex items-center gap-2 text-sm text-slate-600 bg-slate-50 rounded-lg px-3 py-2 hover:bg-slate-100">
-              <UserIcon className="w-4 h-4" />
-              {selectedClient ? selectedClient.nombre : 'Consumidor Final'}
+              className={`w-full flex items-center gap-2 text-sm rounded-lg px-3 py-2 transition-all ${
+                selectedClient
+                  ? 'text-slate-700 bg-white border-2 border-emerald-300 hover:border-emerald-400'
+                  : 'text-slate-600 bg-slate-50 border-2 border-slate-200 hover:border-slate-300'
+              }`}>
+              <UserIcon className="w-4 h-4 shrink-0" />
+              <span className="flex-1 text-left truncate">{selectedClient ? selectedClient.nombre : 'Consumidor Final'}</span>
+              {selectedClient && (
+                <span className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+                  <Check className="w-3 h-3 text-white" />
+                </span>
+              )}
             </button>
             {showClientSelect && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-slate-100 shadow-lg z-10 max-h-48 overflow-y-auto scrollbar-thin">

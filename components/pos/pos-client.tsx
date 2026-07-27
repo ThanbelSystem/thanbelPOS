@@ -114,6 +114,11 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
   )
 
   const addToCart = (producto: any) => {
+    const stock = Number(producto.stock_actual) || 0
+    if (stock <= 0) {
+      toast.error(`El producto ${producto.nombre} no posee existencia en el inventario.`)
+      return
+    }
     setCart(prev => {
       const existing = prev.find(item => item.producto_id === producto.id)
       if (existing) {
@@ -286,8 +291,6 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
 
   const mixedTotal = mixedPayments.reduce((sum, p) => sum + (Number(p.monto) || 0), 0)
 
-  const [showPostPrint, setShowPostPrint] = useState(false)
-
   const printTicket = () => {
     const html = renderTicket()
     if (!html) return
@@ -307,7 +310,7 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
         setTimeout(() => {
           w.close()
           setShowTicket(false)
-          setShowPostPrint(true)
+          setSaleSnapshot(null)
         }, 500)
       }, 500)
     } else {
@@ -326,7 +329,7 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
           setTimeout(() => {
             document.body.removeChild(iframe)
             setShowTicket(false)
-            setShowPostPrint(true)
+            setSaleSnapshot(null)
           }, 500)
         }, 500)
       }
@@ -723,27 +726,6 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
               <button onClick={() => { setShowTicket(false); setSaleSnapshot(null) }}
                 className="px-4 py-2 text-sm hover:bg-slate-100 rounded-lg">
                 Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Post-print dialog */}
-      {showPostPrint && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" />
-          <div className="relative bg-white rounded-2xl shadow-2xl p-6 animate-in-fade max-w-sm w-full">
-            <h3 className="text-lg font-semibold text-slate-800 mb-2">Venta completada</h3>
-            <p className="text-sm text-slate-500 mb-4">¿Desea mantenerse en la misma venta o realizar una venta nueva?</p>
-            <div className="flex gap-3">
-              <button onClick={() => { setShowPostPrint(false); setSaleSnapshot(null) }}
-                className="flex-1 bg-slate-100 text-slate-700 py-2 rounded-lg text-sm font-semibold hover:bg-slate-200">
-                Mantenerse
-              </button>
-              <button onClick={() => { setShowPostPrint(false); setSaleSnapshot(null); window.location.reload() }}
-                className="flex-1 bg-emerald-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-emerald-700">
-                Nueva venta
               </button>
             </div>
           </div>

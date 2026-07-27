@@ -1,13 +1,28 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
-import { Building2, DollarSign, Receipt, Wrench, Printer } from 'lucide-react'
+import { Building2, DollarSign, Receipt, Wrench, Printer, Scan } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { ConfigDivisas } from '@/lib/divisas'
 import { parseNum } from '@/lib/utils'
 import { registrarAuditoriaCliente } from '@/lib/auditoria'
 import ConfirmDialog from '@/components/ui/confirm-dialog'
+
+const PRINTERS_COMMON = [
+  'EPSON TM-T20',
+  'EPSON TM-T20II',
+  'EPSON TM-T88V',
+  'EPSON TM-T88VI',
+  'STAR SP700',
+  'STAR TSP100',
+  'Bixolon SRP-350',
+  'Bixolon SRP-275',
+  'Citizen CT-S2000III',
+  'Panda POS Printer',
+  '58mm USB Printer',
+  '80mm USB Printer',
+]
 
 interface ConfigClientProps {
   empresa: any
@@ -26,6 +41,59 @@ export default function ConfigClient({ empresa: initialEmpresa, configFiscal: in
   const [demoLoading, setDemoLoading] = useState(false)
   const [resetLoading, setResetLoading] = useState(false)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
+  const [dispositivos, setDispositivos] = useState<string[]>(() => {
+    const base = [...PRINTERS_COMMON]
+    if (initialFiscal?.nombre_impresora && !base.includes(initialFiscal.nombre_impresora)) {
+      base.unshift(initialFiscal.nombre_impresora)
+    }
+    return base
+  })
+
+  const empresaNombreRef = useRef<HTMLInputElement>(null)
+  const divisaPrincipalRef = useRef<HTMLInputElement>(null)
+  const ivaRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (tab === 'empresa') empresaNombreRef.current?.focus()
+      else if (tab === 'divisas') divisaPrincipalRef.current?.focus()
+      else if (tab === 'fiscal') ivaRef.current?.focus()
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [tab])
+
+  useEffect(() => {
+    if (tab !== 'fiscal') return
+    if (!('usb' in navigator)) return
+    const detectarSilencioso = async () => {
+      try {
+        const devices = await (navigator as any).usb.getDevices()
+        const names = devices.filter((d: any) => d.productName).map((d: any) => d.productName) as string[]
+        if (names.length > 0) {
+          setDispositivos(prev => [...new Set([...names, ...prev])])
+        }
+      } catch { /* silent */ }
+    }
+    detectarSilencioso()
+  }, [tab])
+
+  const detectarImpresoras = async () => {
+    if (!('usb' in navigator)) {
+      toast.info('WebUSB no disponible en este navegador. Selecciona tu impresora de la lista o escríbela manualmente.')
+      return
+    }
+    try {
+      const device = await (navigator as any).usb.requestDevice({ filters: [] })
+      if (device?.productName) {
+        const name = device.productName as string
+        setDispositivos(prev => prev.includes(name) ? prev : [name, ...prev])
+        setFiscal(prev => ({ ...prev, nombre_impresora: name }))
+        toast.success(`Impresora detectada: ${name}`)
+      }
+    } catch {
+      toast.info('No se seleccionó ningún dispositivo')
+    }
+  }
 
   const saveEmpresa = async () => {
     setLoading(true)
@@ -105,11 +173,16 @@ export default function ConfigClient({ empresa: initialEmpresa, configFiscal: in
   }
 
   const ticketPreview = () => {
-    const line = fiscal.ancho_papel === '80mm' ? '-'.repeat(42) : '-'.repeat(28)
+    const is80 = fiscal.ancho_papel === '80mm'
+    const lineChar = is80 ? 48 : 32
+    const line = '-'.repeat(lineChar)
     const showIva = fiscal.mostrar_iva && Number(fiscal.porcentaje_iva) > 0
     const mensaje = fiscal.mensaje_agradecimiento || '¡Gracias por su compra!'
+    const simbolo = divisas.simbolo_principal || '$'
+    const ivaPct = Number(fiscal.porcentaje_iva) || 0
+    const w = is80 ? 'max-w-sm' : 'max-w-[220px]'
     return (
-      <div className={`bg-white border border-slate-200 rounded-xl p-4 font-mono text-xs ${fiscal.ancho_papel === '80mm' ? 'max-w-sm' : 'max-w-[220px]'}`}>
+      <div className={`bg-white border border-slate-200 rounded-xl p-4 font-mono text-xs ${w} mx-auto`}>
         <p className="text-center font-bold text-sm">{empresa.nombre || 'Mi Empresa'}</p>
         {empresa.direccion && <p className="text-center text-[10px] text-slate-400">{empresa.direccion}</p>}
         {empresa.rif_identificacion && <p className="text-center text-[10px] text-slate-400">RIF: {empresa.rif_identificacion}</p>}
@@ -120,17 +193,17 @@ export default function ConfigClient({ empresa: initialEmpresa, configFiscal: in
         <p className="text-center text-slate-400">{line}</p>
         <p className="text-center font-bold text-[11px]">FACTURA</p>
         <p className="text-center text-slate-400">{line}</p>
-        <p className="text-center">Producto x1    $10.00</p>
-        <p className="text-center">Producto x2    $20.00</p>
+        <p className="text-center">Producto x1    {simbolo}10.00</p>
+        <p className="text-center">Producto x2    {simbolo}20.00</p>
         <p className="text-center text-slate-400">{line}</p>
         {showIva ? (
           <>
-            <p className="text-center">Base IVA:      $20.00</p>
-            <p className="text-center">IVA ({fiscal.porcentaje_iva}%):  $0.00</p>
-            <p className="text-center">Exento:        $10.00</p>
+            <p className="text-center">Base IVA:      {simbolo}20.00</p>
+            <p className="text-center">IVA ({ivaPct}%):   {simbolo}0.00</p>
+            <p className="text-center">Exento:        {simbolo}10.00</p>
           </>
         ) : null}
-        <p className="text-center font-bold text-sm">TOTAL    $30.00</p>
+        <p className="text-center font-bold text-sm">TOTAL    {simbolo}30.00</p>
         <p className="text-center text-slate-400">{line}</p>
         <p className="text-center text-[10px]">{mensaje}</p>
       </div>
@@ -170,7 +243,7 @@ export default function ConfigClient({ empresa: initialEmpresa, configFiscal: in
             <h3 className="text-sm font-semibold text-slate-700">Datos de la empresa</h3>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
-              <input value={empresa.nombre} onChange={e => setEmpresa(prev => ({ ...prev, nombre: e.target.value }))}
+              <input ref={empresaNombreRef} value={empresa.nombre} onChange={e => setEmpresa(prev => ({ ...prev, nombre: e.target.value }))}
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
             </div>
             <div>
@@ -201,7 +274,7 @@ export default function ConfigClient({ empresa: initialEmpresa, configFiscal: in
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Divisa principal</label>
-                <input value={divisas.divisa_principal} onChange={e => setDivisas(prev => ({ ...prev, divisa_principal: e.target.value }))}
+                <input ref={divisaPrincipalRef} value={divisas.divisa_principal} onChange={e => setDivisas(prev => ({ ...prev, divisa_principal: e.target.value }))}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
               </div>
               <div>
@@ -257,46 +330,57 @@ export default function ConfigClient({ empresa: initialEmpresa, configFiscal: in
         )}
 
         {tab === 'fiscal' && (
-          <div className="space-y-4 max-w-lg">
-            <h3 className="text-sm font-semibold text-slate-700">Configuración fiscal</h3>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Porcentaje de IVA (%)</label>
-              <input type="text" inputMode="decimal" value={fiscal.porcentaje_iva} onChange={e => setFiscal(prev => ({ ...prev, porcentaje_iva: e.target.value }))}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Nombre de impresora</label>
-              <input value={fiscal.nombre_impresora} onChange={e => setFiscal(prev => ({ ...prev, nombre_impresora: e.target.value }))}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Ancho de papel</label>
-              <div className="flex gap-2">
-                <button onClick={() => setFiscal(prev => ({ ...prev, ancho_papel: '58mm' }))}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${fiscal.ancho_papel === '58mm' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
-                  58mm
-                </button>
-                <button onClick={() => setFiscal(prev => ({ ...prev, ancho_papel: '80mm' }))}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${fiscal.ancho_papel === '80mm' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
-                  80mm
-                </button>
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+            <div className="space-y-4 lg:col-span-3">
+              <h3 className="text-sm font-semibold text-slate-700">Configuración fiscal</h3>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Nombre de la impresora</label>
+                <div className="flex gap-2">
+                  <select value={fiscal.nombre_impresora || ''} onChange={e => setFiscal(prev => ({ ...prev, nombre_impresora: e.target.value }))}
+                    className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none">
+                    <option value="">-- Seleccionar impresora --</option>
+                    {dispositivos.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                  <button onClick={detectarImpresoras} type="button"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">
+                    <Scan className="w-4 h-4" /> Detectar
+                  </button>
+                </div>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Ancho del papel</label>
+                <div className="flex gap-2">
+                  <button onClick={() => setFiscal(prev => ({ ...prev, ancho_papel: '58mm' }))}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${fiscal.ancho_papel === '58mm' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                    58mm
+                  </button>
+                  <button onClick={() => setFiscal(prev => ({ ...prev, ancho_papel: '80mm' }))}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${fiscal.ancho_papel === '80mm' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                    80mm
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Porcentaje de IVA (%)</label>
+                <input ref={ivaRef} type="text" inputMode="decimal" value={fiscal.porcentaje_iva} onChange={e => setFiscal(prev => ({ ...prev, porcentaje_iva: e.target.value }))}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
+              </div>
+              <label className="flex items-center gap-3">
+                <input type="checkbox" checked={fiscal.mostrar_iva} onChange={e => setFiscal(prev => ({ ...prev, mostrar_iva: e.target.checked }))}
+                  className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                <span className="text-sm text-slate-700">Mostrar IVA en tickets</span>
+              </label>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Mensaje de agradecimiento</label>
+                <textarea value={fiscal.mensaje_agradecimiento || ''} onChange={e => setFiscal(prev => ({ ...prev, mensaje_agradecimiento: e.target.value }))}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" rows={2} />
+              </div>
+              <button onClick={saveFiscal} disabled={loading}
+                className="bg-emerald-600 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50">
+                {loading ? 'Guardando...' : 'Guardar configuración'}
+              </button>
             </div>
-            <label className="flex items-center gap-3">
-              <input type="checkbox" checked={fiscal.mostrar_iva} onChange={e => setFiscal(prev => ({ ...prev, mostrar_iva: e.target.checked }))}
-                className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
-              <span className="text-sm text-slate-700">Mostrar IVA en tickets</span>
-            </label>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Mensaje de agradecimiento</label>
-              <input value={fiscal.mensaje_agradecimiento || ''} onChange={e => setFiscal(prev => ({ ...prev, mensaje_agradecimiento: e.target.value }))}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
-            </div>
-            <button onClick={saveFiscal} disabled={loading}
-              className="bg-emerald-600 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50">
-              {loading ? 'Guardando...' : 'Guardar configuración'}
-            </button>
-            <div className="mt-4">
+            <div className="lg:col-span-2">
               <p className="text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1">
                 <Printer className="w-3 h-3" /> Preview de recibo
               </p>

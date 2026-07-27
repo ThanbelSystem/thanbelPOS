@@ -286,6 +286,29 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
 
   const mixedTotal = mixedPayments.reduce((sum, p) => sum + (Number(p.monto) || 0), 0)
 
+  const printTicket = () => {
+    const html = renderTicket()
+    if (!html) return
+    const w = window.open('', '_blank', 'width=400,height=600,menubar=no,scrollbars=yes')
+    if (w) {
+      w.document.write(html)
+      w.document.close()
+      w.focus()
+    } else {
+      const iframe = document.createElement('iframe')
+      iframe.style.position = 'fixed'
+      iframe.style.top = '-9999px'
+      iframe.style.left = '-9999px'
+      document.body.appendChild(iframe)
+      const doc = iframe.contentDocument || iframe.contentWindow?.document
+      if (doc) {
+        doc.write(html)
+        doc.close()
+        setTimeout(() => { iframe.contentWindow?.print(); document.body.removeChild(iframe) }, 300)
+      }
+    }
+  }
+
   const renderTicket = () => {
     if (!lastSale || !saleSnapshot) return ''
     const snap = saleSnapshot
@@ -673,7 +696,7 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
             <h3 className="text-lg font-semibold text-slate-800 mb-2">Venta procesada</h3>
             <p className="text-sm text-slate-500 mb-4">Total: {fmtMonto(lastSale.total_usd, configDivisas)}</p>
             <div className="flex gap-3">
-              <button onClick={() => { const w = window.open('', '_blank'); if (w) { w.document.write(renderTicket()); w.document.close(); } }}
+              <button onClick={printTicket}
                 className="flex-1 bg-emerald-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-emerald-700 flex items-center justify-center gap-2">
                 <Printer className="w-4 h-4" /> Imprimir ticket
               </button>

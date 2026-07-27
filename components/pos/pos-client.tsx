@@ -52,6 +52,14 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [showTicket, setShowTicket] = useState(false)
   const [lastSale, setLastSale] = useState<any>(null)
+  const [saleSnapshot, setSaleSnapshot] = useState<{
+    cart: CartItem[]
+    selectedClient: any
+    subtotalSinIva: number
+    subtotalConIva: number
+    ivaAmount: number
+    totalUsd: number
+  } | null>(null)
   const [cajaLoading, setCajaLoading] = useState(false)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(50)
@@ -246,6 +254,14 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
 
       toast.success('Venta procesada exitosamente')
       setLastSale(data)
+      setSaleSnapshot({
+        cart: [...cart],
+        selectedClient: selectedClient ? { ...selectedClient } : null,
+        subtotalSinIva,
+        subtotalConIva,
+        ivaAmount,
+        totalUsd,
+      })
       setCart([])
       setSelectedClient(null)
       setMetodoPago('EFECTIVO')
@@ -271,13 +287,14 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
   const mixedTotal = mixedPayments.reduce((sum, p) => sum + (Number(p.monto) || 0), 0)
 
   const renderTicket = () => {
-    if (!lastSale) return ''
+    if (!lastSale || !saleSnapshot) return ''
+    const snap = saleSnapshot
     const line = '-'.repeat(configFiscal.ancho_papel === '80mm' ? 48 : 32)
     const showIva = configFiscal.mostrar_iva && Number(configFiscal.porcentaje_iva) > 0
     const mensaje = configFiscal.mensaje_agradecimiento || '¡Gracias por su compra!'
     const fechaEmision = new Date().toLocaleString('es-VE')
-    const clienteNombre = selectedClient?.nombre || 'Consumidor Final'
-    const clienteRif = selectedClient?.identificacion_cedula_rif || ''
+    const clienteNombre = snap.selectedClient?.nombre || 'Consumidor Final'
+    const clienteRif = snap.selectedClient?.identificacion_cedula_rif || ''
     const tasaStr = `1 ${configDivisas.divisa_principal || 'USD'} = ${Number(configDivisas.tasa_cambio).toLocaleString('es-VE')} ${configDivisas.divisa_secundaria || 'VED'}`
 
     return `
@@ -309,7 +326,7 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
         <div class="line">${line}</div>
         <table>
           <tr><th>Cant</th><th>Descripción</th><th class="right">Precio</th><th class="right">Total</th></tr>
-          ${cart.map(item => {
+          ${snap.cart.map(item => {
             const totalItem = item.cantidad * item.precio_unitario_usd
             return `
             <tr>
@@ -323,14 +340,14 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
         <div class="line">${line}</div>
         ${showIva ? `
         <table>
-          <tr><td>Subtotal (Base IVA):</td><td class="right">${fmtPrincipal(subtotalConIva, configDivisas)}</td></tr>
-          <tr><td>IVA (${configFiscal.porcentaje_iva}%):</td><td class="right">${fmtPrincipal(ivaAmount, configDivisas)}</td></tr>
-          <tr><td>Exento:</td><td class="right">${fmtPrincipal(subtotalSinIva, configDivisas)}</td></tr>
-          <tr class="total"><td>TOTAL:</td><td class="right">${fmtMonto(totalUsd, configDivisas)}</td></tr>
+          <tr><td>Subtotal (Base IVA):</td><td class="right">${fmtPrincipal(snap.subtotalConIva, configDivisas)}</td></tr>
+          <tr><td>IVA (${configFiscal.porcentaje_iva}%):</td><td class="right">${fmtPrincipal(snap.ivaAmount, configDivisas)}</td></tr>
+          <tr><td>Exento:</td><td class="right">${fmtPrincipal(snap.subtotalSinIva, configDivisas)}</td></tr>
+          <tr class="total"><td>TOTAL:</td><td class="right">${fmtMonto(snap.totalUsd, configDivisas)}</td></tr>
         </table>
         ` : `
         <table>
-          <tr class="total"><td>TOTAL:</td><td class="right">${fmtMonto(totalUsd, configDivisas)}</td></tr>
+          <tr class="total"><td>TOTAL:</td><td class="right">${fmtMonto(snap.totalUsd, configDivisas)}</td></tr>
         </table>
         `}
         <p class="center">Tasa: ${tasaStr}</p>
@@ -651,7 +668,7 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
       {/* Ticket Preview */}
       {showTicket && lastSale && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowTicket(false)} />
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => { setShowTicket(false); setSaleSnapshot(null) }} />
           <div className="relative bg-white rounded-2xl shadow-2xl p-6 animate-in-fade max-w-sm w-full">
             <h3 className="text-lg font-semibold text-slate-800 mb-2">Venta procesada</h3>
             <p className="text-sm text-slate-500 mb-4">Total: {fmtMonto(lastSale.total_usd, configDivisas)}</p>
@@ -660,7 +677,7 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
                 className="flex-1 bg-emerald-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-emerald-700 flex items-center justify-center gap-2">
                 <Printer className="w-4 h-4" /> Imprimir ticket
               </button>
-              <button onClick={() => setShowTicket(false)}
+              <button onClick={() => { setShowTicket(false); setSaleSnapshot(null) }}
                 className="px-4 py-2 text-sm hover:bg-slate-100 rounded-lg">
                 Cerrar
               </button>

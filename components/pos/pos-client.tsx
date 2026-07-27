@@ -367,7 +367,7 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
         <div class="line">${line}</div>
         ${showIva ? `
         <table>
-          <tr><td>Subtotal (Base IVA):</td><td class="right">${fmtPrincipal(snap.subtotalConIva, configDivisas)}</td></tr>
+          <tr><td>Subtil:</td><td class="right">${fmtPrincipal(snap.subtotalConIva, configDivisas)}</td></tr>
           <tr><td>IVA (${configFiscal.porcentaje_iva}%):</td><td class="right">${fmtPrincipal(snap.ivaAmount, configDivisas)}</td></tr>
           <tr><td>Exento:</td><td class="right">${fmtPrincipal(snap.subtotalSinIva, configDivisas)}</td></tr>
           <tr class="total"><td>TOTAL:</td><td class="right">${fmtMonto(snap.totalUsd, configDivisas)}</td></tr>
@@ -624,11 +624,11 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
         {/* Totals & Checkout */}
         <div className="p-4 border-t border-slate-100 space-y-3">
           <div className="text-sm text-slate-500 space-y-1">
-            <div className="flex justify-between"><span>Subtotal sin IVA:</span><span className="tabular-nums">{fmtPrincipal(subtotalSinIva, configDivisas)}</span></div>
-            <div className="flex justify-between"><span>Subtotal con IVA:</span><span className="tabular-nums">{fmtPrincipal(subtotalConIva, configDivisas)}</span></div>
+            <div className="flex justify-between"><span>Subtil:</span><span className="tabular-nums">{fmtPrincipal(subtotalConIva, configDivisas)}</span></div>
             {configFiscal.mostrar_iva && Number(configFiscal.porcentaje_iva) > 0 && (
               <div className="flex justify-between"><span>IVA ({configFiscal.porcentaje_iva}%):</span><span className="tabular-nums">{fmtPrincipal(ivaAmount, configDivisas)}</span></div>
             )}
+            <div className="flex justify-between"><span>Exento:</span><span className="tabular-nums">{fmtPrincipal(subtotalSinIva, configDivisas)}</span></div>
             <div className="flex justify-between text-base font-bold text-slate-800 pt-2 border-t border-slate-100">
               <span>TOTAL:</span><span className="tabular-nums">{fmtMonto(totalUsd, configDivisas)}</span>
             </div>

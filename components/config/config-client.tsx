@@ -201,20 +201,10 @@ export default function ConfigClient({ empresa: initialEmpresa, configFiscal: in
         <Sep />
         <p className="text-center font-bold text-[11px]">FACTURA</p>
         <Sep />
-        <table className="w-full text-[10px]">
-          <thead>
-            <tr className="font-semibold">
-              <td className="pr-1">Cant</td>
-              <td className="w-full">Descripción</td>
-              <td className="text-right px-1">Precio</td>
-              <td className="text-right">Total</td>
-            </tr>
-          </thead>
-          <tbody>
-            <tr><td className="pr-1">1</td><td className="w-full truncate">Producto IVA</td><td className="text-right px-1">{s}20.00</td><td className="text-right">{s}20.00</td></tr>
-            <tr><td className="pr-1">1</td><td className="w-full truncate">Producto Exento</td><td className="text-right px-1">{s}15.00</td><td className="text-right">{s}15.00</td></tr>
-          </tbody>
-        </table>
+        <p className="text-left text-[10px] font-semibold truncate">Producto IVA</p>
+        <p className="text-left text-[10px] ml-1 text-slate-500">{s}20.00 x 1 = {s}20.00</p>
+        <p className="text-left text-[10px] font-semibold truncate">Producto Exento</p>
+        <p className="text-left text-[10px] ml-1 text-slate-500">{s}15.00 x 1 = {s}15.00</p>
         <Sep />
         {showIva ? (
           <>

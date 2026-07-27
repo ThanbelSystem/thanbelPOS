@@ -342,6 +342,8 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
         .line { text-align: center; }
         .header { font-size: 11px; text-align: center; margin: 1px 0; }
         .label { font-weight: bold; }
+        .prod-name { text-align: left; font-size: 11px; margin: 2px 0 0 0; }
+        .prod-detail { text-align: left; font-size: 10px; margin: 0 0 2px 4px; color: #555; }
         @media print { body { margin: 0; padding: 4mm; } }
       </style></head>
       <body>
@@ -356,19 +358,12 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
         <div class="line">${line}</div>
         <p class="center label">FACTURA</p>
         <div class="line">${line}</div>
-        <table>
-          <tr><th>Cant</th><th>Descripción</th><th class="right">Precio</th><th class="right">Total</th></tr>
-          ${snap.cart.map(item => {
-            const totalItem = item.cantidad * item.precio_unitario_usd
-            return `
-            <tr>
-              <td>${item.cantidad}</td>
-              <td>${item.nombre}</td>
-              <td class="right">${fmtPrincipal(item.precio_unitario_usd, configDivisas)}</td>
-              <td class="right">${fmtPrincipal(totalItem, configDivisas)}</td>
-            </tr>`
-          }).join('')}
-        </table>
+        ${snap.cart.map(item => {
+          const totalItem = item.cantidad * item.precio_unitario_usd
+          return `
+          <p class="prod-name">${item.nombre}</p>
+          <p class="prod-detail">${fmtPrincipal(item.precio_unitario_usd, configDivisas)} x ${item.cantidad} = ${fmtPrincipal(totalItem, configDivisas)}</p>`
+        }).join('')}
         <div class="line">${line}</div>
         ${showIva ? `
         <table>

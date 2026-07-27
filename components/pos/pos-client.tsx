@@ -289,7 +289,9 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
   const printTicket = () => {
     const html = renderTicket()
     if (!html) return
-    const w = window.open('', '_blank', 'width=400,height=600,menubar=no,scrollbars=yes')
+    const is80mm = configFiscal.ancho_papel === '80mm'
+    const winW = is80mm ? 420 : 340
+    const w = window.open('', '_blank', `width=${winW},height=600,menubar=no,scrollbars=yes`)
     if (w) {
       w.document.write(html)
       w.document.close()
@@ -323,7 +325,8 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
     return `
       <html>
       <head><meta charset="utf-8"><style>
-        body { font-family: 'Courier New', monospace; font-size: 12px; width: ${configFiscal.ancho_papel === '80mm' ? '72mm' : '50mm'}; margin: 0; padding: 8px; }
+        @page { size: ${configFiscal.ancho_papel === '80mm' ? '80mm' : '58mm'} 297mm; margin: 0; }
+        body { font-family: 'Courier New', monospace; font-size: 12px; width: ${configFiscal.ancho_papel === '80mm' ? '72mm' : '50mm'}; margin: 0 auto; padding: 4mm; }
         h2 { text-align: center; margin: 0; font-size: 14px; }
         p { text-align: center; margin: 2px 0; font-size: 11px; }
         table { width: 100%; border-collapse: collapse; }
@@ -334,6 +337,7 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
         .line { text-align: center; }
         .header { font-size: 11px; text-align: center; margin: 1px 0; }
         .label { font-weight: bold; }
+        @media print { body { margin: 0; padding: 4mm; } }
       </style></head>
       <body>
         <h2>${empresa?.nombre || 'ThanBel POS'}</h2>

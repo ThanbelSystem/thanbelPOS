@@ -174,9 +174,7 @@ export default function ConfigClient({ empresa: initialEmpresa, configFiscal: in
 
   const ticketPreview = () => {
     const is80 = fiscal.ancho_papel === '80mm'
-    const lineChar = is80 ? 48 : 32
-    const line = '-'.repeat(lineChar)
-    const showIva = fiscal.mostrar_iva && Number(fiscal.porcentaje_iva) > 0
+    const showIva = (fiscal.mostrar_iva === true || fiscal.mostrar_iva === 'true') && Number(fiscal.porcentaje_iva) > 0
     const mensaje = fiscal.mensaje_agradecimiento || '¡Gracias por su compra!'
     const s = divisas.simbolo_principal || '$'
     const ivaPct = Number(fiscal.porcentaje_iva) || 0
@@ -186,22 +184,23 @@ export default function ConfigClient({ empresa: initialEmpresa, configFiscal: in
     const ivaMonto = subtotalIva * ivaPct / 100
     const exento = 15.00
     const total = showIva ? subtotalIva + ivaMonto + exento : subtotalIva + exento
+    const Sep = () => <div className="border-t border-dashed border-slate-300 my-1" />
     return (
-      <div className={`bg-white border border-slate-200 rounded-xl p-3 font-mono text-xs ${w} mx-auto`}>
-        <p className="text-center font-bold text-sm">{empresa.nombre || 'Mi Empresa'}</p>
-        {empresa.rif_identificacion && <p className="text-center text-[10px]">RIF: {empresa.rif_identificacion}</p>}
-        {empresa.direccion && <p className="text-center text-[10px]">{empresa.direccion}</p>}
-        {empresa.telefono && <p className="text-center text-[10px]">Telf: {empresa.telefono}</p>}
-        <p className="text-center text-slate-400">{line}</p>
+      <div className={`bg-white border border-slate-200 rounded-xl p-3 font-mono text-xs ${w} mx-auto overflow-hidden`}>
+        <p className="text-center font-bold text-sm truncate">{empresa.nombre || 'Mi Empresa'}</p>
+        {empresa.rif_identificacion && <p className="text-center text-[10px] truncate">RIF: {empresa.rif_identificacion}</p>}
+        {empresa.direccion && <p className="text-center text-[10px] truncate">{empresa.direccion}</p>}
+        {empresa.telefono && <p className="text-center text-[10px] truncate">Telf: {empresa.telefono}</p>}
+        <Sep />
         <div className="flex justify-between text-[10px]">
           <span>{new Date().toLocaleDateString('es-VE')}</span>
-          <span># Factura: 001</span>
+          <span className="truncate ml-1"># Factura: 001</span>
         </div>
-        <p className="text-left text-[10px]">Cliente: Consumidor Final</p>
-        <p className="text-left text-[10px]">RIF/ID: V-12345678</p>
-        <p className="text-center text-slate-400">{line}</p>
+        <p className="text-left text-[10px] truncate">Cliente: Consumidor Final</p>
+        <p className="text-left text-[10px] truncate">RIF/ID: V-12345678</p>
+        <Sep />
         <p className="text-center font-bold text-[11px]">FACTURA</p>
-        <p className="text-center text-slate-400">{line}</p>
+        <Sep />
         <table className="w-full text-[10px]">
           <thead>
             <tr className="font-semibold">
@@ -212,11 +211,11 @@ export default function ConfigClient({ empresa: initialEmpresa, configFiscal: in
             </tr>
           </thead>
           <tbody>
-            <tr><td className="pr-1">1</td><td className="w-full">Producto IVA</td><td className="text-right px-1">{s}20.00</td><td className="text-right">{s}20.00</td></tr>
-            <tr><td className="pr-1">1</td><td className="w-full">Producto Exento</td><td className="text-right px-1">{s}15.00</td><td className="text-right">{s}15.00</td></tr>
+            <tr><td className="pr-1">1</td><td className="w-full truncate">Producto IVA</td><td className="text-right px-1">{s}20.00</td><td className="text-right">{s}20.00</td></tr>
+            <tr><td className="pr-1">1</td><td className="w-full truncate">Producto Exento</td><td className="text-right px-1">{s}15.00</td><td className="text-right">{s}15.00</td></tr>
           </tbody>
         </table>
-        <p className="text-center text-slate-400">{line}</p>
+        <Sep />
         {showIva ? (
           <>
             <div className="flex justify-between text-[10px]"><span>Subtotal (Base IVA):</span><span>{s}{subtotalIva.toFixed(2)}</span></div>
@@ -224,10 +223,10 @@ export default function ConfigClient({ empresa: initialEmpresa, configFiscal: in
             <div className="flex justify-between text-[10px]"><span>Exento:</span><span>{s}{exento.toFixed(2)}</span></div>
           </>
         ) : null}
-        <p className="text-center text-slate-400">{line}</p>
+        <Sep />
         <div className="flex justify-between text-[10px] font-bold"><span>TOTAL:</span><span>{s}{total.toFixed(2)}</span></div>
-        <p className="text-center text-[10px]">Tasa: {tasaStr}</p>
-        <p className="text-center text-slate-400">{line}</p>
+        <p className="text-center text-[10px] truncate">Tasa: {tasaStr}</p>
+        <Sep />
         <p className="text-center text-[10px]">{mensaje}</p>
       </div>
     )

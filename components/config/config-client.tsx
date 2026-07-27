@@ -178,32 +178,54 @@ export default function ConfigClient({ empresa: initialEmpresa, configFiscal: in
     const line = '-'.repeat(lineChar)
     const showIva = fiscal.mostrar_iva && Number(fiscal.porcentaje_iva) > 0
     const mensaje = fiscal.mensaje_agradecimiento || '¡Gracias por su compra!'
-    const simbolo = divisas.simbolo_principal || '$'
+    const s = divisas.simbolo_principal || '$'
     const ivaPct = Number(fiscal.porcentaje_iva) || 0
+    const tasaStr = `1 ${divisas.divisa_principal || 'USD'} = ${Number(divisas.tasa_cambio || 1).toLocaleString('es-VE')} ${divisas.divisa_secundaria || 'VED'}`
     const w = is80 ? 'max-w-sm' : 'max-w-[220px]'
+    const totalProd = 35.00
+    const subtotalIva = 20.00
+    const ivaMonto = subtotalIva * ivaPct / 100
+    const exento = 15.00
     return (
-      <div className={`bg-white border border-slate-200 rounded-xl p-4 font-mono text-xs ${w} mx-auto`}>
+      <div className={`bg-white border border-slate-200 rounded-xl p-3 font-mono text-xs ${w} mx-auto`}>
         <p className="text-center font-bold text-sm">{empresa.nombre || 'Mi Empresa'}</p>
-        {empresa.direccion && <p className="text-center text-[10px] text-slate-400">{empresa.direccion}</p>}
-        {empresa.rif_identificacion && <p className="text-center text-[10px] text-slate-400">RIF: {empresa.rif_identificacion}</p>}
-        {empresa.telefono && <p className="text-center text-[10px] text-slate-400">Telf: {empresa.telefono}</p>}
+        {empresa.rif_identificacion && <p className="text-center text-[10px]">RIF: {empresa.rif_identificacion}</p>}
+        {empresa.direccion && <p className="text-center text-[10px]">{empresa.direccion}</p>}
+        {empresa.telefono && <p className="text-center text-[10px]">Telf: {empresa.telefono}</p>}
         <p className="text-center text-slate-400">{line}</p>
-        <p className="text-center text-[10px] text-slate-400">{new Date().toLocaleString('es-VE')}</p>
-        <p className="text-center text-[10px] text-slate-400">Cliente: Consumidor Final</p>
+        <div className="flex justify-between text-[10px]">
+          <span>{new Date().toLocaleDateString('es-VE')}</span>
+          <span># Factura: 001</span>
+        </div>
+        <p className="text-left text-[10px]">Cliente: Consumidor Final</p>
+        <p className="text-left text-[10px]">RIF/ID: V-12345678</p>
         <p className="text-center text-slate-400">{line}</p>
         <p className="text-center font-bold text-[11px]">FACTURA</p>
         <p className="text-center text-slate-400">{line}</p>
-        <p className="text-center">Producto x1    {simbolo}10.00</p>
-        <p className="text-center">Producto x2    {simbolo}20.00</p>
+        <table className="w-full text-[10px]">
+          <thead>
+            <tr className="font-semibold">
+              <td className="pr-1">Cant</td>
+              <td className="w-full">Descripción</td>
+              <td className="text-right px-1">Precio</td>
+              <td className="text-right">Total</td>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td className="pr-1">1</td><td className="w-full">Producto IVA</td><td className="text-right px-1">{s}20.00</td><td className="text-right">{s}20.00</td></tr>
+            <tr><td className="pr-1">1</td><td className="w-full">Producto Exento</td><td className="text-right px-1">{s}15.00</td><td className="text-right">{s}15.00</td></tr>
+          </tbody>
+        </table>
         <p className="text-center text-slate-400">{line}</p>
         {showIva ? (
           <>
-            <p className="text-center">Base IVA:      {simbolo}20.00</p>
-            <p className="text-center">IVA ({ivaPct}%):   {simbolo}0.00</p>
-            <p className="text-center">Exento:        {simbolo}10.00</p>
+            <div className="flex justify-between text-[10px]"><span>Subtotal (Base IVA):</span><span>{s}{subtotalIva.toFixed(2)}</span></div>
+            <div className="flex justify-between text-[10px]"><span>IVA ({ivaPct}%):</span><span>{s}{ivaMonto.toFixed(2)}</span></div>
+            <div className="flex justify-between text-[10px]"><span>Exento:</span><span>{s}{exento.toFixed(2)}</span></div>
           </>
         ) : null}
-        <p className="text-center font-bold text-sm">TOTAL    {simbolo}30.00</p>
+        <div className="flex justify-between text-[10px] font-bold"><span>TOTAL:</span><span>{s}{totalProd.toFixed(2)}</span></div>
+        <p className="text-center text-[10px]">Tasa: {tasaStr}</p>
         <p className="text-center text-slate-400">{line}</p>
         <p className="text-center text-[10px]">{mensaje}</p>
       </div>

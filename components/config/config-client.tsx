@@ -208,7 +208,7 @@ export default function ConfigClient({ empresa: initialEmpresa, configFiscal: in
         <Sep />
         {showIva ? (
           <>
-            <div className="flex justify-between text-[10px]"><span>Subtotal (Base IVA):</span><span>{s}{subtotalIva.toFixed(2)}</span></div>
+            <div className="flex justify-between text-[10px]"><span>Subtil:</span><span>{s}{subtotalIva.toFixed(2)}</span></div>
             <div className="flex justify-between text-[10px]"><span>IVA ({ivaPct}%):</span><span>{s}{ivaMonto.toFixed(2)}</span></div>
             <div className="flex justify-between text-[10px]"><span>Exento:</span><span>{s}{exento.toFixed(2)}</span></div>
           </>

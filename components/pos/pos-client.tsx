@@ -286,6 +286,8 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
 
   const mixedTotal = mixedPayments.reduce((sum, p) => sum + (Number(p.monto) || 0), 0)
 
+  const [showPostPrint, setShowPostPrint] = useState(false)
+
   const printTicket = () => {
     const html = renderTicket()
     if (!html) return
@@ -300,6 +302,14 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
       w.document.title = title
       w.document.close()
       w.focus()
+      setTimeout(() => {
+        w.print()
+        setTimeout(() => {
+          w.close()
+          setShowTicket(false)
+          setShowPostPrint(true)
+        }, 500)
+      }, 500)
     } else {
       const iframe = document.createElement('iframe')
       iframe.style.position = 'fixed'
@@ -311,7 +321,14 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
       if (doc) {
         doc.write(html)
         doc.close()
-        setTimeout(() => { iframe.contentWindow?.print(); document.body.removeChild(iframe) }, 300)
+        setTimeout(() => {
+          iframe.contentWindow?.print()
+          setTimeout(() => {
+            document.body.removeChild(iframe)
+            setShowTicket(false)
+            setShowPostPrint(true)
+          }, 500)
+        }, 500)
       }
     }
   }
@@ -319,68 +336,67 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
   const renderTicket = () => {
     if (!lastSale || !saleSnapshot) return ''
     const snap = saleSnapshot
-    const line = '-'.repeat(configFiscal.ancho_papel === '80mm' ? 48 : 32)
-    const showIva = configFiscal.mostrar_iva && Number(configFiscal.porcentaje_iva) > 0
+    const is80 = configFiscal.ancho_papel === '80mm'
+    const showIva = configFiscal.mostrar_iva === true || configFiscal.mostrar_iva === 'true' || configFiscal.mostrar_iva === 1
     const mensaje = configFiscal.mensaje_agradecimiento || '¡Gracias por su compra!'
-    const fechaEmision = new Date().toLocaleString('es-VE')
+    const s = configDivisas.simbolo_principal || '$'
+    const tasaStr = `1 ${configDivisas.divisa_principal || 'USD'} = ${Number(configDivisas.tasa_cambio || 1).toLocaleString('es-VE')} ${configDivisas.divisa_secundaria || 'VED'}`
+    const fechaEmision = new Date().toLocaleDateString('es-VE')
     const clienteNombre = snap.selectedClient?.nombre || 'Consumidor Final'
     const clienteRif = snap.selectedClient?.identificacion_cedula_rif || ''
-    const tasaStr = `1 ${configDivisas.divisa_principal || 'USD'} = ${Number(configDivisas.tasa_cambio).toLocaleString('es-VE')} ${configDivisas.divisa_secundaria || 'VED'}`
 
     return `
       <html>
       <head><meta charset="utf-8"><style>
-        @page { size: ${configFiscal.ancho_papel === '80mm' ? '80mm' : '58mm'} 297mm; margin: 0; }
-        body { font-family: 'Courier New', monospace; font-size: 12px; width: ${configFiscal.ancho_papel === '80mm' ? '72mm' : '50mm'}; margin: 0 auto; padding: 4mm; }
-        h2 { text-align: center; margin: 0; font-size: 14px; }
-        p { text-align: center; margin: 2px 0; font-size: 11px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { text-align: left; font-size: 11px; padding: 1px 0; }
-        .right { text-align: right; }
-        .center { text-align: center; }
-        .total { font-weight: bold; font-size: 13px; }
-        .line { text-align: center; }
-        .header { font-size: 11px; text-align: center; margin: 1px 0; }
-        .label { font-weight: bold; }
-        .prod-name { text-align: left; font-size: 11px; margin: 2px 0 0 0; }
-        .prod-detail { text-align: left; font-size: 10px; margin: 0 0 2px 4px; color: #555; }
+        @page { size: ${is80 ? '80mm' : '58mm'} 297mm; margin: 0; }
+        body { font-family: 'Courier New', monospace; font-size: 12px; width: ${is80 ? '72mm' : '50mm'}; margin: 0 auto; padding: 4mm; overflow: hidden; }
+        .c { text-align: center; }
+        .l { text-align: left; }
+        .b { font-weight: bold; }
+        .s6 { font-weight: 600; }
+        .s10 { font-size: 10px; }
+        .s11 { font-size: 11px; }
+        .trunc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .muted { color: #64748b; }
+        .sep { border-top: 1px dashed #cbd5e1; margin: 2px 0; }
+        .row { display: flex; justify-content: space-between; }
+        .indent { margin-left: 4px; }
+        .mt2 { margin-top: 2px; }
+        .mb2 { margin-bottom: 2px; }
         @media print { body { margin: 0; padding: 4mm; } }
       </style></head>
       <body>
-        <h2>${empresa?.nombre || 'ThanBel POS'}</h2>
-        ${empresa?.direccion ? `<p class="header">${empresa.direccion}</p>` : ''}
-        ${empresa?.rif_identificacion ? `<p class="header">RIF: ${empresa.rif_identificacion}</p>` : ''}
-        ${empresa?.telefono ? `<p class="header">Telf: ${empresa.telefono}</p>` : ''}
-        <div class="line">${line}</div>
-        <p class="header">${fechaEmision}</p>
-        <p class="header"># Factura: ${lastSale.venta_id || ''}</p>
-        <p class="header">Cliente: ${clienteNombre}${clienteRif ? ' / ' + clienteRif : ''}</p>
-        <div class="line">${line}</div>
-        <p class="center label">FACTURA</p>
-        <div class="line">${line}</div>
+        <p class="c b s11 trunc">${empresa?.nombre || 'Mi Empresa'}</p>
+        ${empresa?.rif_identificacion ? `<p class="c s10 trunc">RIF: ${empresa.rif_identificacion}</p>` : ''}
+        ${empresa?.direccion ? `<p class="c s10 trunc">${empresa.direccion}</p>` : ''}
+        ${empresa?.telefono ? `<p class="c s10 trunc">Telf: ${empresa.telefono}</p>` : ''}
+        <div class="sep"></div>
+        <div class="row s10">
+          <span>${fechaEmision}</span>
+          <span class="trunc" style="margin-left:4px"># Factura: ${lastSale?.venta_id || ''}</span>
+        </div>
+        <p class="l s10 trunc">Cliente: ${clienteNombre}</p>
+        ${clienteRif ? `<p class="l s10 trunc">RIF/ID: ${clienteRif}</p>` : ''}
+        <div class="sep"></div>
+        <p class="c b s11">FACTURA</p>
+        <div class="sep"></div>
         ${snap.cart.map(item => {
           const totalItem = item.cantidad * item.precio_unitario_usd
           return `
-          <p class="prod-name">${item.nombre}</p>
-          <p class="prod-detail">${fmtPrincipal(item.precio_unitario_usd, configDivisas)} x ${item.cantidad} = ${fmtPrincipal(totalItem, configDivisas)}</p>`
+          <p class="l s10 s6 trunc mt2">${item.nombre}</p>
+          <p class="l s10 muted indent mb2">${fmtPrincipal(item.precio_unitario_usd, configDivisas)} x ${item.cantidad} = ${fmtPrincipal(totalItem, configDivisas)}</p>`
         }).join('')}
-        <div class="line">${line}</div>
+        <div class="sep"></div>
         ${showIva ? `
-        <table>
-          <tr><td>Subtil:</td><td class="right">${fmtPrincipal(snap.subtotalConIva, configDivisas)}</td></tr>
-          <tr><td>IVA (${configFiscal.porcentaje_iva}%):</td><td class="right">${fmtPrincipal(snap.ivaAmount, configDivisas)}</td></tr>
-          <tr><td>Exento:</td><td class="right">${fmtPrincipal(snap.subtotalSinIva, configDivisas)}</td></tr>
-          <tr class="total"><td>TOTAL:</td><td class="right">${fmtMonto(snap.totalUsd, configDivisas)}</td></tr>
-        </table>
-        ` : `
-        <table>
-          <tr class="total"><td>TOTAL:</td><td class="right">${fmtMonto(snap.totalUsd, configDivisas)}</td></tr>
-        </table>
-        `}
-        <p class="center">Tasa: ${tasaStr}</p>
-        <div class="line">${line}</div>
-        <p class="center">${mensaje}</p>
-        <script>window.print();window.close();</script>
+        <div class="row s10"><span>Subtil:</span><span>${fmtPrincipal(snap.subtotalConIva, configDivisas)}</span></div>
+        <div class="row s10"><span>IVA (${configFiscal.porcentaje_iva}%):</span><span>${fmtPrincipal(snap.ivaAmount, configDivisas)}</span></div>
+        <div class="row s10"><span>Exento:</span><span>${fmtPrincipal(snap.subtotalSinIva, configDivisas)}</span></div>
+        ` : ''}
+        <div class="sep"></div>
+        <div class="row s10 b"><span>TOTAL:</span><span>${fmtMonto(snap.totalUsd, configDivisas)}</span></div>
+        <p class="c s10 trunc">Tasa: ${tasaStr}</p>
+        <div class="sep"></div>
+        <p class="c s10">${mensaje}</p>
       </body></html>
     `
   }
@@ -707,6 +723,27 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
               <button onClick={() => { setShowTicket(false); setSaleSnapshot(null) }}
                 className="px-4 py-2 text-sm hover:bg-slate-100 rounded-lg">
                 Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Post-print dialog */}
+      {showPostPrint && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" />
+          <div className="relative bg-white rounded-2xl shadow-2xl p-6 animate-in-fade max-w-sm w-full">
+            <h3 className="text-lg font-semibold text-slate-800 mb-2">Venta completada</h3>
+            <p className="text-sm text-slate-500 mb-4">¿Desea mantenerse en la misma venta o realizar una venta nueva?</p>
+            <div className="flex gap-3">
+              <button onClick={() => { setShowPostPrint(false); setSaleSnapshot(null) }}
+                className="flex-1 bg-slate-100 text-slate-700 py-2 rounded-lg text-sm font-semibold hover:bg-slate-200">
+                Mantenerse
+              </button>
+              <button onClick={() => { setShowPostPrint(false); setSaleSnapshot(null); window.location.reload() }}
+                className="flex-1 bg-emerald-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-emerald-700">
+                Nueva venta
               </button>
             </div>
           </div>

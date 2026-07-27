@@ -505,7 +505,16 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input ref={searchRef} type="text" placeholder="Buscar producto..." value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
+              <input ref={searchRef} type="text" placeholder="Buscar producto por nombre o código de barras..." value={search}
+                onChange={e => { setSearch(e.target.value); setPage(1) }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    const match = productos.find(p =>
+                      p.codigo_barras && p.codigo_barras.toLowerCase() === search.toLowerCase().trim()
+                    )
+                    if (match) { addToCart(match); setSearch('') }
+                  }
+                }}
                 className="w-full rounded-lg border border-slate-200 pl-9 pr-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
             </div>
             <select value={selectedInv} onChange={e => { setSelectedInv(e.target.value); setPage(1) }}

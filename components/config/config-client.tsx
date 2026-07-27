@@ -182,10 +182,10 @@ export default function ConfigClient({ empresa: initialEmpresa, configFiscal: in
     const ivaPct = Number(fiscal.porcentaje_iva) || 0
     const tasaStr = `1 ${divisas.divisa_principal || 'USD'} = ${Number(divisas.tasa_cambio || 1).toLocaleString('es-VE')} ${divisas.divisa_secundaria || 'VED'}`
     const w = is80 ? 'max-w-sm' : 'max-w-[220px]'
-    const totalProd = 35.00
     const subtotalIva = 20.00
     const ivaMonto = subtotalIva * ivaPct / 100
     const exento = 15.00
+    const total = showIva ? subtotalIva + ivaMonto + exento : subtotalIva + exento
     return (
       <div className={`bg-white border border-slate-200 rounded-xl p-3 font-mono text-xs ${w} mx-auto`}>
         <p className="text-center font-bold text-sm">{empresa.nombre || 'Mi Empresa'}</p>
@@ -224,7 +224,8 @@ export default function ConfigClient({ empresa: initialEmpresa, configFiscal: in
             <div className="flex justify-between text-[10px]"><span>Exento:</span><span>{s}{exento.toFixed(2)}</span></div>
           </>
         ) : null}
-        <div className="flex justify-between text-[10px] font-bold"><span>TOTAL:</span><span>{s}{totalProd.toFixed(2)}</span></div>
+        <p className="text-center text-slate-400">{line}</p>
+        <div className="flex justify-between text-[10px] font-bold"><span>TOTAL:</span><span>{s}{total.toFixed(2)}</span></div>
         <p className="text-center text-[10px]">Tasa: {tasaStr}</p>
         <p className="text-center text-slate-400">{line}</p>
         <p className="text-center text-[10px]">{mensaje}</p>

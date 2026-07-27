@@ -121,6 +121,7 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
     const stock = Number(producto.stock_actual) || 0
     if (stock <= 0) {
       toast.error(`El producto ${producto.nombre} no posee existencia en el inventario.`)
+      focusSearch()
       return
     }
     setCart(prev => {

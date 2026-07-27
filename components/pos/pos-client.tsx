@@ -290,10 +290,14 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
     const html = renderTicket()
     if (!html) return
     const is80mm = configFiscal.ancho_papel === '80mm'
-    const winW = is80mm ? 420 : 340
+    const bodyW = is80mm ? 72 : 50
+    const winW = Math.round(bodyW * 3.8) + 40
+    const printerName = configFiscal.nombre_impresora
+    const title = `Ticket - ${printerName || 'Impresora térmica'}`
     const w = window.open('', '_blank', `width=${winW},height=600,menubar=no,scrollbars=yes`)
     if (w) {
       w.document.write(html)
+      w.document.title = title
       w.document.close()
       w.focus()
     } else {
@@ -301,6 +305,7 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
       iframe.style.position = 'fixed'
       iframe.style.top = '-9999px'
       iframe.style.left = '-9999px'
+      iframe.title = title
       document.body.appendChild(iframe)
       const doc = iframe.contentDocument || iframe.contentWindow?.document
       if (doc) {

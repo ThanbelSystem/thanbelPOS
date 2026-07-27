@@ -174,7 +174,7 @@ export default function ConfigClient({ empresa: initialEmpresa, configFiscal: in
 
   const ticketPreview = () => {
     const is80 = fiscal.ancho_papel === '80mm'
-    const showIva = (fiscal.mostrar_iva === true || fiscal.mostrar_iva === 'true') && Number(fiscal.porcentaje_iva) > 0
+    const showIva = fiscal.mostrar_iva === true || fiscal.mostrar_iva === 'true' || fiscal.mostrar_iva === 1
     const mensaje = fiscal.mensaje_agradecimiento || '¡Gracias por su compra!'
     const s = divisas.simbolo_principal || '$'
     const ivaPct = Number(fiscal.porcentaje_iva) || 0

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
@@ -34,7 +34,10 @@ interface PosClientProps {
 
 export default function PosClient({ caja: initialCaja, inventarios, productos, clientes, configFiscal, configDivisas, empresa, user }: PosClientProps) {
   const router = useRouter()
+  const searchRef = useRef<HTMLInputElement>(null)
+  const focusSearch = () => setTimeout(() => searchRef.current?.focus(), 50)
   const [caja, setCaja] = useState(initialCaja)
+  useEffect(() => { if (caja) focusSearch() }, [caja])
   const [openCajaModal, setOpenCajaModal] = useState(!initialCaja)
   const [closeCajaModal, setCloseCajaModal] = useState(false)
   const [montoInicialUsd, setMontoInicialUsd] = useState('0')
@@ -107,6 +110,7 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
     setMixedPayments([])
     setPage(1)
     toast.success('Venta restablecida')
+    focusSearch()
   }
 
   const filteredClientes = clientes.filter(c =>
@@ -137,6 +141,7 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
         inventario_nombre: producto.inventarios?.nombre_inventario || '',
       }]
     })
+    focusSearch()
   }
 
   const updateQuantity = (producto_id: string, delta: number) => {
@@ -145,6 +150,7 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
         ? { ...item, cantidad: Math.max(0.01, item.cantidad + delta) }
         : item
     ).filter(item => item.cantidad > 0))
+    focusSearch()
   }
 
   const setQuantity = (producto_id: string, value: string) => {
@@ -174,6 +180,7 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
 
   const removeFromCart = (producto_id: string) => {
     setCart(prev => prev.filter(item => item.producto_id !== producto_id))
+    focusSearch()
   }
 
   const subtotalSinIva = cart
@@ -201,6 +208,7 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
       toast.success('Caja abierta exitosamente')
       setCaja(data)
       setOpenCajaModal(false)
+      focusSearch()
     } catch { toast.error('Error al abrir caja') }
     finally { setCajaLoading(false) }
   }
@@ -311,6 +319,7 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
           w.close()
           setShowTicket(false)
           setSaleSnapshot(null)
+          focusSearch()
         }, 500)
       }, 500)
     } else {
@@ -330,6 +339,7 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
             document.body.removeChild(iframe)
             setShowTicket(false)
             setSaleSnapshot(null)
+            focusSearch()
           }, 500)
         }, 500)
       }
@@ -474,11 +484,11 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
                   placeholder="0.00" />
               </div>
               <div className="flex gap-3">
-                <button onClick={addCustomProductToCart}
+                <button onClick={() => { addCustomProductToCart(); focusSearch() }}
                   className="flex-1 bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-emerald-700 transition-colors">
                   Agregar al carrito
                 </button>
-                <button onClick={() => setShowAddProductModal(false)}
+                <button onClick={() => { setShowAddProductModal(false); focusSearch() }}
                   className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
                   Cancelar
                 </button>
@@ -494,7 +504,7 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input type="text" placeholder="Buscar producto..." value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
+              <input ref={searchRef} type="text" placeholder="Buscar producto..." value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
                 className="w-full rounded-lg border border-slate-200 pl-9 pr-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
             </div>
             <select value={selectedInv} onChange={e => { setSelectedInv(e.target.value); setPage(1) }}
@@ -596,12 +606,12 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
                   <input type="text" placeholder="Buscar cliente..." value={clientSearch} onChange={e => setClientSearch(e.target.value)}
                     className="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none mb-1" />
                 </div>
-                <button onClick={() => { setSelectedClient(null); setShowClientSelect(false) }}
+                <button onClick={() => { setSelectedClient(null); setShowClientSelect(false); focusSearch() }}
                   className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50">
                   Consumidor Final
                 </button>
                 {filteredClientes.map((c: any) => (
-                  <button key={c.id} onClick={() => { setSelectedClient(c); setShowClientSelect(false) }}
+                  <button key={c.id} onClick={() => { setSelectedClient(c); setShowClientSelect(false); focusSearch() }}
                     className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 flex items-center justify-between">
                     <span>{c.nombre}</span>
                     {selectedClient?.id === c.id && <Check className="w-3 h-3 text-emerald-500" />}
@@ -714,7 +724,7 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
       {/* Ticket Preview */}
       {showTicket && lastSale && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => { setShowTicket(false); setSaleSnapshot(null) }} />
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => { setShowTicket(false); setSaleSnapshot(null); focusSearch() }} />
           <div className="relative bg-white rounded-2xl shadow-2xl p-6 animate-in-fade max-w-sm w-full">
             <h3 className="text-lg font-semibold text-slate-800 mb-2">Venta procesada</h3>
             <p className="text-sm text-slate-500 mb-4">Total: {fmtMonto(lastSale.total_usd, configDivisas)}</p>
@@ -723,7 +733,7 @@ export default function PosClient({ caja: initialCaja, inventarios, productos, c
                 className="flex-1 bg-emerald-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-emerald-700 flex items-center justify-center gap-2">
                 <Printer className="w-4 h-4" /> Imprimir ticket
               </button>
-              <button onClick={() => { setShowTicket(false); setSaleSnapshot(null) }}
+              <button onClick={() => { setShowTicket(false); setSaleSnapshot(null); focusSearch() }}
                 className="px-4 py-2 text-sm hover:bg-slate-100 rounded-lg">
                 Cerrar
               </button>

@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { toast } from 'sonner'
-import { Search, Plus, Pencil, Trash2, MapPin, MessageCircle } from 'lucide-react'
+import { Search, Plus, Pencil, Trash2, MapPin, MessageCircle, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { fmtMonto, ConfigDivisas, DEFAULT_DIVISAS } from '@/lib/divisas'
 import { parseNum } from '@/lib/utils'
@@ -141,6 +141,29 @@ export default function ClientesClient({ clientes: initialClientes, config, user
       .order('fecha_transaccion', { ascending: false })
     setTransactions(data || [])
     setTransLoading(false)
+  }
+
+  const [ventaDetail, setVentaDetail] = useState<any>(null)
+  const [detalleItems, setDetalleItems] = useState<any[]>([])
+  const [detalleLoading, setDetalleLoading] = useState(false)
+
+  const openVentaDetail = async (t: any) => {
+    if (t.tipo !== 'VENTA_POS') return
+    setDetalleLoading(true)
+    const { data: venta } = await supabase
+      .from('ventas')
+      .select('*')
+      .eq('id', t.referencia_id)
+      .single()
+    if (venta) {
+      const { data: detalles } = await supabase
+        .from('venta_detalles')
+        .select('*, productos (nombre, exento_iva)')
+        .eq('venta_id', venta.id)
+      setVentaDetail(venta)
+      setDetalleItems(detalles || [])
+    }
+    setDetalleLoading(false)
   }
 
   const registrarAbono = async () => {
@@ -369,7 +392,9 @@ export default function ClientesClient({ clientes: initialClientes, config, user
                 transactions.length === 0 ? <p className="text-sm text-slate-400">Sin transacciones</p> : (
                   <div className="space-y-1">
                     {transactions.map(t => (
-                      <div key={t.id} className="flex items-center justify-between text-sm py-1">
+                      <div key={t.id}
+                        className={`flex items-center justify-between text-sm py-1 ${t.tipo === 'VENTA_POS' ? 'cursor-pointer hover:bg-slate-100 rounded px-0.5' : ''}`}
+                        onClick={t.tipo === 'VENTA_POS' ? () => openVentaDetail(t) : undefined}>
                         <span className="text-slate-500">{new Date(t.fecha_transaccion).toLocaleDateString('es-VE')}</span>
                         <span className="font-medium">{t.tipo}</span>
                         <span className="tabular-nums">{fmtMonto(Number(t.monto_usd), config)}</span>
@@ -392,6 +417,79 @@ export default function ClientesClient({ clientes: initialClientes, config, user
         variant="danger"
         loading={loading}
       />
+
+      {ventaDetail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => { setVentaDetail(null); setDetalleItems([]) }}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[80vh] overflow-y-auto p-5" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-slate-700">Detalle de Venta</h3>
+              <button onClick={() => { setVentaDetail(null); setDetalleItems([]) }} className="text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            {detalleLoading ? <p className="text-sm text-slate-400 text-center py-4">Cargando...</p> : (
+              <>
+                <div className="bg-slate-50 rounded-xl p-3 mb-4 text-sm space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">N° Factura</span>
+                    <span className="font-medium">{ventaDetail.id}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Fecha</span>
+                    <span className="font-medium">{new Date(ventaDetail.fecha_venta || ventaDetail.created_at).toLocaleDateString('es-VE')}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Método de pago</span>
+                    <span className="font-medium">{ventaDetail.metodo_pago}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Estado</span>
+                    <span className={`font-medium ${ventaDetail.estado_pago === 'PAGADO' ? 'text-emerald-600' : 'text-amber-600'}`}>
+                      {ventaDetail.estado_pago}
+                    </span>
+                  </div>
+                  {ventaDetail.referencia_pago && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Referencia</span>
+                      <span className="font-medium">{ventaDetail.referencia_pago}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Tasa BCV</span>
+                    <span className="font-medium">Bs {Number(ventaDetail.tasa_cambio_usada).toLocaleString('es-VE', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                </div>
+                <div className="space-y-1 mb-4">
+                  <p className="text-xs font-semibold text-slate-500 uppercase">Productos</p>
+                  {detalleItems.map((d, i) => (
+                    <div key={i} className="flex items-center justify-between text-sm py-1">
+                      <span className="flex-1 truncate">{d.productos?.nombre || `Producto #${d.producto_id}`}</span>
+                      <span className="text-slate-500 mx-2">x{d.cantidad}</span>
+                      <span className="tabular-nums w-24 text-right">{fmtMonto(Number(d.subtotal_usd), config)}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="border-t border-slate-200 pt-3 space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Subtotal</span>
+                    <span className="tabular-nums">{fmtMonto(Number(ventaDetail.total_usd), config)}</span>
+                  </div>
+                  {detalleItems.some(d => !d.productos?.exento_iva) && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">IVA</span>
+                      <span className="tabular-nums text-emerald-600">Incluido</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-base font-bold text-slate-800 pt-1">
+                    <span>Total</span>
+                    <span className="text-right">{fmtMonto(Number(ventaDetail.total_usd), config)}</span>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

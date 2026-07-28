@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { toast } from 'sonner'
-import { Search, Plus, Pencil, Trash2, MapPin, MessageCircle, X } from 'lucide-react'
+import { Search, Plus, Pencil, Trash2, MapPin, MessageCircle, X, Receipt, Hash, CalendarDays, CreditCard, Banknote, Smartphone, Wallet, BadgeCheck, CircleOff, Package, ChevronRight } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { fmtMonto, ConfigDivisas, DEFAULT_DIVISAS } from '@/lib/divisas'
 import { parseNum } from '@/lib/utils'
@@ -419,70 +419,138 @@ export default function ClientesClient({ clientes: initialClientes, config, user
       />
 
       {ventaDetail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => { setVentaDetail(null); setDetalleItems([]) }}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[80vh] overflow-y-auto p-5" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-slate-700">Detalle de Venta</h3>
-              <button onClick={() => { setVentaDetail(null); setDetalleItems([]) }} className="text-slate-400 hover:text-slate-600">
-                <X className="w-4 h-4" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => { setVentaDetail(null); setDetalleItems([]) }}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+
+            <div className="sticky top-0 z-10 bg-gradient-to-r from-emerald-600 to-emerald-500 rounded-t-2xl px-5 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+                  <Receipt className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">Factura #{ventaDetail.id}</h3>
+                  <p className="text-[11px] text-emerald-100/80">{new Date(ventaDetail.fecha_venta || ventaDetail.created_at).toLocaleDateString('es-VE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                </div>
+              </div>
+              <button onClick={() => { setVentaDetail(null); setDetalleItems([]) }} className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors">
+                <X className="w-3.5 h-3.5 text-white" />
               </button>
             </div>
-            {detalleLoading ? <p className="text-sm text-slate-400 text-center py-4">Cargando...</p> : (
+
+            {detalleLoading ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mb-3" />
+                <p className="text-sm text-slate-400">Cargando detalle...</p>
+              </div>
+            ) : (
               <>
-                <div className="bg-slate-50 rounded-xl p-3 mb-4 text-sm space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">N° Factura</span>
-                    <span className="font-medium">{ventaDetail.id}</span>
+                <div className="p-5 space-y-5">
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-slate-50 rounded-xl p-3">
+                      <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 uppercase mb-1.5">
+                        <Hash className="w-3 h-3" />
+                        <span>Factura</span>
+                      </div>
+                      <p className="text-sm font-bold text-slate-800">#{ventaDetail.id}</p>
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-3">
+                      <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 uppercase mb-1.5">
+                        <CalendarDays className="w-3 h-3" />
+                        <span>Fecha</span>
+                      </div>
+                      <p className="text-sm font-bold text-slate-800">{new Date(ventaDetail.fecha_venta || ventaDetail.created_at).toLocaleDateString('es-VE')}</p>
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-3">
+                      <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 uppercase mb-1.5">
+                        {ventaDetail.metodo_pago === 'EFECTIVO' ? <Banknote className="w-3 h-3" /> : ventaDetail.metodo_pago === 'PAGO_MOVIL' ? <Smartphone className="w-3 h-3" /> : ventaDetail.metodo_pago === 'PUNTO_DE_VENTA' ? <CreditCard className="w-3 h-3" /> : <Wallet className="w-3 h-3" />}
+                        <span>Pago</span>
+                      </div>
+                      <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
+                        ventaDetail.metodo_pago === 'EFECTIVO' ? 'bg-emerald-100 text-emerald-700' :
+                        ventaDetail.metodo_pago === 'PAGO_MOVIL' ? 'bg-blue-100 text-blue-700' :
+                        ventaDetail.metodo_pago === 'PUNTO_DE_VENTA' ? 'bg-purple-100 text-purple-700' :
+                        ventaDetail.metodo_pago === 'CREDITO' ? 'bg-amber-100 text-amber-700' :
+                        'bg-slate-100 text-slate-700'
+                      }`}>
+                        {ventaDetail.metodo_pago === 'EFECTIVO' ? 'Efectivo' : ventaDetail.metodo_pago === 'PAGO_MOVIL' ? 'Pago Móvil' : ventaDetail.metodo_pago === 'PUNTO_DE_VENTA' ? 'Punto de Venta' : ventaDetail.metodo_pago === 'CREDITO' ? 'Crédito' : ventaDetail.metodo_pago === 'MIXTO' ? 'Mixto' : ventaDetail.metodo_pago}
+                      </span>
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-3">
+                      <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 uppercase mb-1.5">
+                        {ventaDetail.estado_pago === 'PAGADO' ? <BadgeCheck className="w-3 h-3" /> : <CircleOff className="w-3 h-3" />}
+                        <span>Estado</span>
+                      </div>
+                      <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
+                        ventaDetail.estado_pago === 'PAGADO' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                      }`}>
+                        {ventaDetail.estado_pago === 'PAGADO' ? 'Pagado' : 'Pendiente'}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Fecha</span>
-                    <span className="font-medium">{new Date(ventaDetail.fecha_venta || ventaDetail.created_at).toLocaleDateString('es-VE')}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Método de pago</span>
-                    <span className="font-medium">{ventaDetail.metodo_pago}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Estado</span>
-                    <span className={`font-medium ${ventaDetail.estado_pago === 'PAGADO' ? 'text-emerald-600' : 'text-amber-600'}`}>
-                      {ventaDetail.estado_pago}
-                    </span>
-                  </div>
+
                   {ventaDetail.referencia_pago && (
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Referencia</span>
-                      <span className="font-medium">{ventaDetail.referencia_pago}</span>
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+                        <Hash className="w-3.5 h-3.5 text-amber-600" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-medium text-amber-500 uppercase">Referencia</p>
+                        <p className="text-sm font-semibold text-amber-800 truncate">{ventaDetail.referencia_pago}</p>
+                      </div>
                     </div>
                   )}
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Tasa BCV</span>
-                    <span className="font-medium">Bs {Number(ventaDetail.tasa_cambio_usada).toLocaleString('es-VE', { minimumFractionDigits: 2 })}</span>
-                  </div>
-                </div>
-                <div className="space-y-1 mb-4">
-                  <p className="text-xs font-semibold text-slate-500 uppercase">Productos</p>
-                  {detalleItems.map((d, i) => (
-                    <div key={i} className="flex items-center justify-between text-sm py-1">
-                      <span className="flex-1 truncate">{d.productos?.nombre || `Producto #${d.producto_id}`}</span>
-                      <span className="text-slate-500 mx-2">x{d.cantidad}</span>
-                      <span className="tabular-nums w-24 text-right">{fmtMonto(Number(d.subtotal_usd), config)}</span>
+
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-5 h-5 rounded-md bg-emerald-100 flex items-center justify-center">
+                        <Package className="w-3 h-3 text-emerald-600" />
+                      </div>
+                      <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Productos ({detalleItems.length})</span>
                     </div>
-                  ))}
+                    <div className="space-y-1.5">
+                      {detalleItems.map((d, i) => (
+                        <div key={i} className="group flex items-center gap-3 bg-white border border-slate-100 hover:border-slate-200 rounded-xl px-3.5 py-2.5 transition-all">
+                          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-slate-100 to-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shrink-0">
+                            {i + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-700 truncate">{d.productos?.nombre || `Producto #${d.producto_id}`}</p>
+                            <p className="text-[11px] text-slate-400">{fmtMonto(Number(d.precio_unitario_usd), config)} c/u</p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-xs font-semibold bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md">×{d.cantidad}</span>
+                            <span className="text-sm font-bold text-slate-700 tabular-nums w-20 text-right">{fmtMonto(Number(d.subtotal_usd), config)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {ventaDetail.tasa_cambio_usada && (
+                    <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400">
+                      <span>Tasa BCV:</span>
+                      <span className="font-semibold text-slate-500">Bs {Number(ventaDetail.tasa_cambio_usada).toLocaleString('es-VE', { minimumFractionDigits: 2 })}</span>
+                      <span className="mx-1">•</span>
+                      <span>1 {config.divisa_principal}</span>
+                    </div>
+                  )}
                 </div>
-                <div className="border-t border-slate-200 pt-3 space-y-1 text-sm">
-                  <div className="flex justify-between">
+
+                <div className="border-t border-slate-100 bg-slate-50/80 px-5 py-4 space-y-2">
+                  <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-500">Subtotal</span>
-                    <span className="tabular-nums">{fmtMonto(Number(ventaDetail.total_usd), config)}</span>
+                    <span className="font-semibold text-slate-600 tabular-nums">{fmtMonto(Number(ventaDetail.total_usd), config)}</span>
                   </div>
                   {detalleItems.some(d => !d.productos?.exento_iva) && (
-                    <div className="flex justify-between">
+                    <div className="flex items-center justify-between text-sm">
                       <span className="text-slate-500">IVA</span>
-                      <span className="tabular-nums text-emerald-600">Incluido</span>
+                      <span className="font-semibold text-emerald-600">Incluido</span>
                     </div>
                   )}
-                  <div className="flex justify-between text-base font-bold text-slate-800 pt-1">
-                    <span>Total</span>
-                    <span className="text-right">{fmtMonto(Number(ventaDetail.total_usd), config)}</span>
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+                    <span className="text-sm font-bold text-slate-800">Total</span>
+                    <span className="text-lg font-extrabold text-emerald-600 tabular-nums">{fmtMonto(Number(ventaDetail.total_usd), config)}</span>
                   </div>
                 </div>
               </>

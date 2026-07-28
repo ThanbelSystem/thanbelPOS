@@ -297,60 +297,67 @@ export default function ClientesClient({ clientes: initialClientes, config, user
       <Pagination data={filtered} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />
 
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setModalOpen(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto scrollbar-thin p-6 animate-in-fade">
-            <button onClick={() => setModalOpen(false)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100">
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-            </button>
-            <h3 className="text-lg font-semibold text-slate-800 mb-1">{editing ? 'Editar cliente' : 'Nuevo cliente'}</h3>
-            <p className="text-sm text-slate-500 mb-4">Complete los datos del cliente</p>
-            <div className="space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setModalOpen(false)}>
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto scrollbar-thin animate-in-fade" onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 z-10 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between rounded-t-2xl">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Nombre *</label>
+                <h3 className="text-lg font-semibold text-slate-800">{editing ? 'Editar cliente' : 'Nuevo cliente'}</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Complete los datos del cliente</p>
+              </div>
+              <button onClick={() => setModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-6 space-y-5">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Nombre <span className="text-rose-500">*</span></label>
                 <input value={form.nombre} onChange={e => setForm(prev => ({ ...prev, nombre: e.target.value }))}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none transition-shadow" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Cédula/RIF</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Cédula/RIF</label>
                   <input value={form.identificacion_cedula_rif} onChange={e => setForm(prev => ({ ...prev, identificacion_cedula_rif: e.target.value }))}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none transition-shadow" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Teléfono</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Teléfono</label>
                   <input value={form.telefono} onChange={e => setForm(prev => ({ ...prev, telefono: e.target.value }))}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none transition-shadow" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Límite crédito (USD)</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Límite crédito (USD)</label>
                   <input type="text" inputMode="decimal" value={form.limite_credito_usd} onChange={e => setForm(prev => ({ ...prev, limite_credito_usd: e.target.value }))}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none transition-shadow" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Vencimiento crédito</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Vencimiento crédito</label>
                   <input type="date" value={form.fecha_vencimiento_credito} onChange={e => setForm(prev => ({ ...prev, fecha_vencimiento_credito: e.target.value }))}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none transition-shadow" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Coordenadas GPS</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Coordenadas GPS</label>
                 <div className="flex gap-2">
                   <input type="text" inputMode="decimal" placeholder="Latitud" value={form.latitud_gps} onChange={e => setForm(prev => ({ ...prev, latitud_gps: e.target.value }))}
-                    className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none transition-shadow" />
                   <input type="text" inputMode="decimal" placeholder="Longitud" value={form.longitud_gps} onChange={e => setForm(prev => ({ ...prev, longitud_gps: e.target.value }))}
-                    className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none" />
-                  <button onClick={captureGps} className="px-3 py-2 bg-slate-100 rounded-lg hover:bg-slate-200 text-sm">
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 outline-none transition-shadow" />
+                  <button onClick={captureGps} className="px-3 py-2.5 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 text-emerald-600 transition-colors shrink-0" title="Capturar ubicación">
                     <MapPin className="w-4 h-4" />
                   </button>
                 </div>
               </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">Cancelar</button>
+              <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+                <button onClick={() => setModalOpen(false)}
+                  className="px-5 py-2.5 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-colors">
+                  Cancelar
+                </button>
                 <button onClick={save} disabled={loading}
-                  className="px-4 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50">
+                  className="px-5 py-2.5 text-sm font-semibold bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                   {loading ? 'Guardando...' : editing ? 'Actualizar' : 'Crear cliente'}
                 </button>
               </div>
